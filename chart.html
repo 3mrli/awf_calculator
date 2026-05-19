@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太阳能透过谱图分析 - 3M</title>
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f8f9fa;
+        }
+        #chart_div {
+            width: 100vw;
+            height: 100vh;
+        }
+        #no_data {
+            display: none;
+            text-align: center;
+            margin-top: 20%;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div id="no_data">
+        <h2>暂无谱图数据。</h2>
+        <p>请先在主页面上传文件并成功执行“开始计算”，然后再点击“显示谱图”。</p>
+    </div>
+    
+    <div id="chart_div"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const rawData = window.localStorage.getItem("current_chart_data");
+            if (!rawData) {
+                document.getElementById('no_data').style.display = 'block';
+                return;
+            }
+            
+            let data;
+            try {
+                data = JSON.parse(rawData);
+            } catch(e) {
+                document.getElementById('no_data').style.display = 'block';
+                return;
+            }
+
+            const spectra = data.spectra;
+            const fileName = data.fileIdent || "未知文件";
+
+            const traceOrig = {
+                x: spectra.wl,
+                y: spectra.irr,
+                mode: 'lines',
+                name: '原始太阳能谱图',
+                line: {color: '#ffc107', width: 2.5}
+            };
+
+            const traceDirect = {
+                x: spectra.wl,
+                y: spectra.direct,
+                mode: 'lines',
+                name: '直接透过谱图',
+                line: {color: '#0d6efd', width: 2.5}
+            };
+
+            const traceTotal = {
+                x: spectra.wl,
+                y: spectra.total,
+                mode: 'lines',
+                name: '总透过谱图 (含二次传热)',
+                line: {color: '#dc3545', width: 2.5}
+            };
+
+            const layout = {
+                title: {
+                    text: '<b>太阳能光谱分布 (300 - 2500nm) - ' + fileName + '</b>',
+                    font: { size: 24 }
+                },
+                xaxis: {
+                    title: { text: "波长 Wavelength (nm)", font: {size: 16} },
+                    dtick: 500,
+                    minor: {
+                        dtick: 100,
+                        showgrid: true,
+                        gridcolor: '#e5e5e5',
+                    },
+                    showgrid: true,
+                    gridcolor: '#cccccc',
+                    zeroline: false
+                },
+                yaxis: {
+                    title: { text: "辐照度 Irradiance (W/m²)", font: {size: 16} },
+                    showgrid: true,
+                    gridcolor: '#cccccc', // 强制实线显示 (默认即为实现，这里用较深灰色明确展现)
+                    zeroline: true,
+                    zerolinecolor: '#999999'
+                },
+                legend: {
+                    x: 0.99,
+                    y: 0.99,
+                    xanchor: 'right',
+                    yanchor: 'top',
+                    bgcolor: 'rgba(255,255,255,0.9)',
+                    bordercolor: '#ced4da',
+                    borderwidth: 1,
+                    font: { size: 14 }
+                },
+                hovermode: "x unified",
+                margin: {l: 80, r: 60, t: 80, b: 80}
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                scrollZoom: true,
+                toImageButtonOptions: {
+                    format: 'png',
+                    filename: 'Spectrum_' + fileName,
+                    height: 800,
+                    width: 1200,
+                    scale: 2
+                }
+            };
+
+            Plotly.newPlot("chart_div", [traceOrig, traceDirect, traceTotal], layout, config);
+        });
+    </script>
+</body>
+</html>
