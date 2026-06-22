@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import json
 from pyscript import document, window
 from calculator import calculate_params
@@ -121,7 +121,7 @@ def render_history():
         vlr = f"{item.get('VLR_I'):.1f}" if item.get('VLR_I') is not None else "-"
         name = item['name']
         short_name = name if len(name) <= 12 else name[:10] + "..."
-        html += f"<tr style='cursor: pointer;'><td class='text-start text-primary fw-bold' onclick='window.js_view_history({i})' title='点击查看详情: {name}'>{short_name}</td><td onclick='window.js_view_history({i})'>{item.get('VLT', 0):.1f}</td><td onclick='window.js_view_history({i})'>{item.get('TSER', 0):.1f}</td><td onclick='window.js_view_history({i})'>{item.get('UVB', 0):.1f}</td><td onclick='window.js_view_history({i})'>{vlr}</td><td><button class='btn btn-sm btn-outline-danger py-0 px-1' onclick='window.js_delete_history({i}); event.stopPropagation();' title='删除'>&times;</button></td></tr>"
+        html += f"<tr style='cursor: pointer;'><td class='text-start text-primary fw-bold' onclick='window.js_view_history({i})' title='点击查看详情: {name}'>{short_name}</td><td onclick='window.js_view_history({i})'>{item['VLT']:.1f}</td><td onclick='window.js_view_history({i})'>{item['TSER']:.1f}</td><td onclick='window.js_view_history({i})'>{item['UVB']:.1f}</td><td onclick='window.js_view_history({i})'>{vlr}</td><td><button class='btn btn-sm btn-danger' onclick='window.js_delete_history({i})'>删除</button></td></tr>"
     tbody.innerHTML = html
 
 def on_calculate_click(event):
@@ -169,10 +169,11 @@ def on_calculate_click(event):
             update_right_panel(res)
             
         except Exception as e:
-            document.getElementById("error_msg").innerHTML = f"计算出错: {str(e)}"
+            error_msg = f"计算出错: {str(e)}"
+            print("Error in process_files:", error_msg)
+            document.getElementById("error_msg").innerHTML = error_msg
             
     asyncio.ensure_future(process_files())
 
 load_history_from_storage()
 render_history()
-
