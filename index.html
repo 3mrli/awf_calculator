@@ -27,19 +27,135 @@
         .hero-label { font-size: 1.1rem; color: #6c757d; font-weight: 500; }
         .result-card { text-align: center; padding: 20px; border-radius: 10px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .navbar-brand img { min-width: 50px; }
+
+        .hero-header {
+            position: relative;
+            overflow: hidden;
+            padding: 0;
+            background: linear-gradient(90deg, #ffffff 0%, #eef3f8 46%, #d9e3ec 100%);
+            border-bottom: 1px solid rgba(104, 129, 156, 0.24);
+            box-shadow: 0 8px 20px rgba(39, 58, 78, 0.08);
+        }
+
+        .hero-header-inner {
+            position: relative;
+            z-index: 2;
+            min-height: 160px;
+            padding: 1.4rem 0;
+        }
+
+        .hero-copy {
+            max-width: min(760px, calc(100% - 360px));
+        }
+
+        .hero-tech-visual {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 34%;
+            height: auto;
+            transform: none;
+            min-width: 280px;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+            background:
+                linear-gradient(90deg, rgba(217, 227, 236, 0) 0%, rgba(197, 213, 228, 0.34) 36%, rgba(186, 204, 220, 0.56) 100%),
+                radial-gradient(circle at 88% 28%, rgba(90, 130, 170, 0.26), transparent 48%);
+        }
+
+        .hero-tech-visual::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background:
+                linear-gradient(90deg, rgba(236, 242, 248, 0.98) 0%, rgba(236, 242, 248, 0.76) 12%, rgba(236, 242, 248, 0) 34%),
+                linear-gradient(270deg, rgba(217, 227, 236, 0.9) 0%, rgba(217, 227, 236, 0) 22%),
+                linear-gradient(180deg, rgba(230, 238, 246, 0.85) 0%, rgba(230, 238, 246, 0) 20%),
+                linear-gradient(0deg, rgba(217, 227, 236, 0.85) 0%, rgba(217, 227, 236, 0) 20%);
+        }
+
+        #tech_network_canvas {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            opacity: 0.9;
+        }
+
+        .hero-logo-wrap {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            z-index: 3;
+            margin: 0;
+            padding: 0;
+            border-radius: 10px;
+        }
+
+        .hero-logo-wrap.navbar-brand {
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-right: 0;
+        }
+
+        @media (max-width: 992px) {
+            .hero-tech-visual {
+                width: 42%;
+                min-width: 200px;
+                opacity: 0.75;
+            }
+
+            .hero-copy {
+                max-width: min(640px, calc(100% - 270px));
+            }
+
+            .hero-logo-wrap {
+                right: 8px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-header-inner {
+                min-height: 140px;
+            }
+
+            .hero-tech-visual {
+                width: 38%;
+                min-width: 140px;
+                opacity: 0.45;
+            }
+
+            .hero-copy {
+                max-width: calc(100% - 94px);
+            }
+
+            .hero-logo-wrap img {
+                height: 46px !important;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-light bg-white py-4 shadow-sm mb-4">
-      <div class="container align-items-center">
-        <div class="d-flex flex-column me-auto pe-4">
+    <nav class="navbar navbar-light hero-header mb-4">
+      <div class="container hero-header-inner align-items-center">
+        <div class="hero-tech-visual" aria-hidden="true">
+            <canvas id="tech_network_canvas"></canvas>
+        </div>
+
+        <div class="d-flex flex-column me-auto pe-4 hero-copy">
             <span class="navbar-brand mb-0 fw-bold text-wrap" style="font-family: '3M Circular TT Book', '3M Circular', sans-serif; font-size: 2.2rem;">Window Film 计算器 (GB/T 2680)</span>
             <p class="text-secondary mt-2 mb-0" style="font-size: 0.9rem; line-height: 1.6; max-width: 850px;">本工具严格遵循国家标准 《<strong>GB/T 2680</strong> 建筑玻璃 可见光透射比、太阳光直接透射比、太阳能总透射比、紫外线透射比及有关窗玻璃参数的测定》，支持直接解析Lambda分光光度计原始光谱数据，将原本耗时、繁琐的 Excel 查表与人工积分转换工作，简化为"一键式"的秒级计算。</p>
         </div>
         <!-- 3M Logo -->
-        <a class="navbar-brand m-0 ms-3" href="#" title="3M">
-            <img src="https://raw.githubusercontent.com/wrapfilm/awf_calculator/main/logo.svg" alt="3M Logo" class="img-fluid" style="height: 60px; width: auto; object-fit: contain;">
+        <a class="navbar-brand m-0 hero-logo-wrap" href="#" title="3M">
+                        <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3My4wMSA0OSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOnJlZDt9PC9zdHlsZT48L2RlZnM+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNTAuMzgsMTIuNTJsLTMuNDUsMTQtMy40Ni0xNGgtMTB2NS4xN0MzMi4yNywxMy4xNiwyNy44MiwxMiwyMy44NSwxMiwxOSwxMS45LDEzLjYyLDE0LDEzLjQ0LDIwLjQxaDYuN2EzLjIsMy4yLDAsMCwxLDMuNDUtM2MyLjA1LDAsMywuODYsMy4wNSwyLjIyLS4wNywxLjE5LS43NywyLTMsMkgyMS4zNXY0LjY1aDJjMS4xNiwwLDIuNzguNjQsMi44NCwyLjI5LjA4LDItMS4yOSwyLjg1LTMsMi44Ni0zLS4xMS0zLjc5LTIuNDMtMy43OS00LjQyaC03YzAsMS4zNCwwLDEwLjA5LDEwLjksMTAsNS4yMy4wNSw5LTIuMTUsMTAuMS01LjE4VjM2LjVoNi43MlYyMS4zN0w0My45MywzNi41aDZsMy43My0xNS4xMVYzNi41Mmg2Ljg1di0yNFptLTE2Ljg3LDE0YTUuMyw1LjMsMCwwLDAtMi43NC0yLjc5LDQuNjMsNC42MywwLDAsMCwyLjc0LTMuMloiLz48L3N2Zz4=" alt="3M Logo" class="img-fluid" style="height: 60px; width: auto; object-fit: contain;">
         </a>
       </div>
     </nav>
@@ -208,6 +324,128 @@
     <footer class="mt-5 mb-4 text-center text-dark fw-medium" style="font-size: 0.9rem;">
         &copy; 3M 2026. All Rights Reserved. &nbsp;&nbsp; 3M Confidential.
     </footer>
+
+    <script>
+        (function () {
+            const canvas = document.getElementById("tech_network_canvas");
+            if (!canvas) return;
+
+            const container = canvas.parentElement;
+            const ctx = canvas.getContext("2d", { alpha: true });
+            if (!ctx || !container) return;
+
+            const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            let width = 0;
+            let height = 0;
+            let particles = [];
+            let rafId = null;
+
+            function resize() {
+                const rect = container.getBoundingClientRect();
+                width = Math.max(1, rect.width);
+                height = Math.max(1, rect.height);
+                canvas.width = Math.floor(width * dpr);
+                canvas.height = Math.floor(height * dpr);
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                buildParticles();
+            }
+
+            function buildParticles() {
+                const count = Math.max(20, Math.min(42, Math.floor(width / 12)));
+                particles = Array.from({ length: count }, () => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    z: Math.random(),
+                    vx: (Math.random() - 0.5) * 0.48,
+                    vy: (Math.random() - 0.5) * 0.42,
+                    vz: (Math.random() - 0.5) * 0.004,
+                    phase: Math.random() * Math.PI * 2
+                }));
+            }
+
+            function projectPoint(p, t) {
+                const oscillation = Math.sin(t * 0.001 + p.phase) * 0.08;
+                const depth = Math.max(0.1, Math.min(1.2, p.z + oscillation));
+                const perspective = 0.62 + depth * 0.52;
+                const cx = width * 0.58;
+                const cy = height * 0.5;
+                return {
+                    px: (p.x - cx) * perspective + cx,
+                    py: (p.y - cy) * perspective + cy,
+                    depth: depth
+                };
+            }
+
+            function tick(ts) {
+                ctx.clearRect(0, 0, width, height);
+
+                const connectPulse = 0.85 + Math.sin(ts * 0.0016) * 0.2;
+                const projected = particles.map((p) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.z += p.vz;
+
+                    if (p.x < -10 || p.x > width + 10) p.vx *= -1;
+                    if (p.y < -10 || p.y > height + 10) p.vy *= -1;
+                    if (p.z < 0.04 || p.z > 0.98) p.vz *= -1;
+
+                    return projectPoint(p, ts);
+                });
+
+                for (let i = 0; i < projected.length; i++) {
+                    for (let j = i + 1; j < projected.length; j++) {
+                        const a = projected[i];
+                        const b = projected[j];
+                        const dx = a.px - b.px;
+                        const dy = a.py - b.py;
+                        const dist = Math.hypot(dx, dy);
+                        const depthAvg = (a.depth + b.depth) / 2;
+                        const threshold = (96 + (1 - depthAvg) * 48) * connectPulse;
+
+                        if (dist < threshold) {
+                            const alpha = (1 - dist / threshold) * (0.2 + depthAvg * 0.35);
+                            ctx.beginPath();
+                            ctx.moveTo(a.px, a.py);
+                            ctx.lineTo(b.px, b.py);
+                            ctx.strokeStyle = `rgba(84, 126, 170, ${alpha.toFixed(3)})`;
+                            ctx.lineWidth = 0.6 + depthAvg * 0.7;
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                for (const p of projected) {
+                    const radius = 1.4 + p.depth * 1.9;
+                    const glow = 0.2 + p.depth * 0.34;
+                    ctx.beginPath();
+                    ctx.arc(p.px, p.py, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(64, 112, 160, ${(0.35 + glow).toFixed(3)})`;
+                    ctx.fill();
+                }
+
+                if (!prefersReducedMotion) {
+                    rafId = window.requestAnimationFrame(tick);
+                }
+            }
+
+            resize();
+            window.addEventListener("resize", resize);
+
+            if (prefersReducedMotion) {
+                tick(0);
+                return;
+            }
+
+            rafId = window.requestAnimationFrame(tick);
+
+            window.addEventListener("beforeunload", function () {
+                if (rafId) window.cancelAnimationFrame(rafId);
+            });
+        })();
+    </script>
 
     <!-- PyScript Config -->
     <py-config>
