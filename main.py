@@ -12,6 +12,7 @@ except Exception:
 LOCAL_STORAGE_KEY = "gb2680_history_data"
 history_data = []
 _event_proxies = []
+_calc_in_progress = False
 
 def load_history_from_storage():
     global history_data
@@ -192,6 +193,11 @@ def init_event_handlers():
     bind_click_handler_by_selector("button[py-click='clear_history_click']", clear_history_click)
 
 def on_calculate_click(event):
+    global _calc_in_progress
+
+    if _calc_in_progress:
+        return
+
     document.getElementById("results_wrapper").style.display = "none"
     document.getElementById("error_msg").innerHTML = ""
     document.getElementById("hero_vlr_box").style.display = "none"
@@ -217,7 +223,13 @@ def on_calculate_click(event):
         document.getElementById("error_msg").innerHTML = f"文件读取异常: {str(e)}"
         return
 
+    _calc_in_progress = True
+    calc_btn = document.getElementById("calc_btn")
+    if calc_btn:
+        calc_btn.disabled = True
+
     async def process_files():
+        global _calc_in_progress
         try:
             trans_file = trans_file_input.files.item(0)
             refl_file = refl_file_input.files.item(0)
@@ -234,7 +246,9 @@ def on_calculate_click(event):
             res = calculate_params(trans_text, refl_text, in_refl_text)
             
             # 保存到历史，直接存入 res 字典(包含了所有指标与 spectra 光谱阵列)，用于随时切换浏览
-            file_ident = trans_file.name.replace(".csv", "").replace(".样品", "").replace(".原始数据", "").replace("-trans", "").replace("-refl-front", "")
+            trans_name = str(trans_file.name)
+            base_name = trans_name.rsplit(".", 1)[0]
+            file_ident = (base_name.split("-", 1)[0].strip() or base_name)
             res["name"] = file_ident
             history_data.insert(0, res)
             
@@ -252,6 +266,10 @@ def on_calculate_click(event):
             error_msg = f"计算出错: {str(e)}"
             print("Error in process_files:", error_msg)
             document.getElementById("error_msg").innerHTML = error_msg
+        finally:
+            _calc_in_progress = False
+            if calc_btn:
+                calc_btn.disabled = False
             
     asyncio.ensure_future(process_files())
 
