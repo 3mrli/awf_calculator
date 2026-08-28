@@ -10,7 +10,9 @@ except Exception:
 
 # 从 localStorage 加载历史记录
 LOCAL_STORAGE_KEY = "gb2680_history_data"
+COMPARE_SELECTION_KEY = "gb2680_compare_selection"
 history_data = []
+compare_selection = []
 _event_proxies = []
 _calc_in_progress = False
 
@@ -33,6 +35,8 @@ def clear_history_click(event):
     if window.confirm("确定要清空所有历史计算记录吗？"):
         global history_data
         history_data = []
+        compare_selection.clear()
+        window.localStorage.removeItem(COMPARE_SELECTION_KEY)
         save_history_to_storage()
         render_history()
 
@@ -118,10 +122,43 @@ def on_export_click(event):
     a.click()
     a.remove()
 
+def update_compare_controls():
+    button = document.getElementById("compare_btn")
+    counter = document.getElementById("compare_count")
+    if button:
+        button.disabled = len(compare_selection) == 0
+    if counter:
+        counter.innerText = f"{len(compare_selection)}/5"
+
+def on_compare_selection_change(idx, checked):
+    index = int(idx)
+    if checked and index not in compare_selection:
+        if len(compare_selection) >= 5:
+            window.alert("最多选择 5 个测试样品进行对比。")
+            checkbox = document.getElementById(f"compare_check_{index}")
+            if checkbox:
+                checkbox.checked = False
+            return
+        compare_selection.append(index)
+    elif not checked and index in compare_selection:
+        compare_selection.remove(index)
+    compare_selection.sort()
+    window.localStorage.setItem(COMPARE_SELECTION_KEY, json.dumps(compare_selection))
+    update_compare_controls()
+
+window.js_compare_selection_change = on_compare_selection_change
+
+def on_compare_click(event):
+    if not compare_selection:
+        window.alert("请至少选择一个测试样品。")
+        return
+    window.open("compare.html", "_blank")
+
 def render_history():
     tbody = document.getElementById("history_tbody")
     if not history_data:
-        tbody.innerHTML = '<tr><td colspan="6" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>'
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>'
+        update_compare_controls()
         return
 
     try:
@@ -142,6 +179,7 @@ def render_history():
 
             html += (
                 f"<tr style='cursor: pointer;'>"
+                f"<td onclick='event.stopPropagation();'><input class='form-check-input' type='checkbox' id='compare_check_{i}' onchange='window.js_compare_selection_change({i}, this.checked)' {'checked' if i in compare_selection else ''} aria-label='选择 {short_name} 加入对比'></td>"
                 f"<td class='text-start text-primary fw-bold' onclick='window.js_view_history({i})' title='点击查看详情: {name}'>{short_name}</td>"
                 f"<td onclick='window.js_view_history({i})'>{vlt:.1f}</td>"
                 f"<td onclick='window.js_view_history({i})'>{tser:.1f}</td>"
@@ -151,10 +189,11 @@ def render_history():
                 f"</tr>"
             )
 
-        tbody.innerHTML = html if html else '<tr><td colspan="6" class="text-muted py-3">（暂无有效历史数据）</td></tr>'
+        tbody.innerHTML = html if html else '<tr><td colspan="7" class="text-muted py-3">（暂无有效历史数据）</td></tr>'
+        update_compare_controls()
     except Exception as e:
         print("Render history error:", e)
-        tbody.innerHTML = '<tr><td colspan="6" class="text-warning py-3">历史数据异常，建议清空后重试</td></tr>'
+        tbody.innerHTML = '<tr><td colspan="7" class="text-warning py-3">历史数据异常，建议清空后重试</td></tr>'
 
 
 def bind_click_handler_by_id(element_id, handler):
@@ -233,6 +272,7 @@ def init_event_handlers():
     # Keep py-click attributes, and bind explicitly as a fallback to avoid silent non-response.
     bind_click_handler_by_id("calc_btn", on_calculate_click)
     bind_click_handler_by_id("export_btn", on_export_click)
+    bind_click_handler_by_id("compare_btn", on_compare_click)
     bind_click_handler_by_selector("button[py-click='clear_history_click']", clear_history_click)
     bind_change_handler("trans_csv", update_file_status)
     bind_change_handler("refl_csv", update_file_status)
@@ -323,5 +363,14 @@ def on_calculate_click(event):
     asyncio.ensure_future(process_files())
 
 load_history_from_storage()
+try:
+    stored_selection = window.localStorage.getItem(COMPARE_SELECTION_KEY)
+    if stored_selection:
+        compare_selection = [
+            int(index) for index in json.loads(stored_selection)
+            if 0 <= int(index) < len(history_data)
+        ][:5]
+except Exception:
+    compare_selection = []
 render_history()
 init_event_handlers()

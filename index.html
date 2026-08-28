@@ -234,6 +234,7 @@
                         <div>
                             <button class="btn btn-sm btn-outline-light me-1" py-click="clear_history_click" title="清空历史记录">清空</button>
                             <button class="btn btn-sm btn-light fw-bold" id="export_btn" py-click="on_export_click">导出 CSV</button>
+                            <button class="btn btn-sm btn-warning fw-bold ms-1" id="compare_btn" py-click="on_compare_click" disabled>加入对比 <span id="compare_count">0/5</span></button>
                         </div>
                     </div>
                     <div class="card-body p-2">
@@ -241,6 +242,7 @@
                             <table class="table table-sm table-striped table-hover mb-0 text-center" style="font-size: 0.85rem;">
                                 <thead class="table-light">
                                     <tr>
+                                        <th aria-label="选择"></th>
                                         <th class="text-start">文件标识</th>
                                         <th>VLT(%)</th>
                                         <th>TSER(%)</th>
@@ -250,7 +252,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="history_tbody">
-                                    <tr><td colspan="6" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>
+                                    <tr><td colspan="7" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>
                                 </tbody>
                             </table>
                         </div>
