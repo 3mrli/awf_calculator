@@ -241,7 +241,7 @@
                                     <tr>
                                         <th class="text-start">文件标识</th>
                                         <th>VLT(%)</th>
-                                        <th>Tser(%)</th>
+                                        <th>TSER(%)</th>
                                         <th>UVB(%)</th>
                                         <th>VLR</th>
                                         <th>操作</th>
@@ -276,7 +276,7 @@
                         </div>
                         <div class="col-6">
                             <div class="result-card metric-tser border border-2">
-                                <div class="hero-label">总隔热率 (Tser)</div>
+                                <div class="hero-label">总隔热率 (TSER)</div>
                                 <div class="hero-value"><span id="hero_tser">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
                         </div>
@@ -376,7 +376,6 @@
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             let width = 0;
             let height = 0;
-            let particles = [];
             let rafId = null;
 
             function resize() {
@@ -388,97 +387,80 @@
                 canvas.style.width = `${width}px`;
                 canvas.style.height = `${height}px`;
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                buildParticles();
             }
 
-            function buildParticles() {
-                const count = Math.max(20, Math.min(42, Math.floor(width / 12)));
-                particles = Array.from({ length: count }, () => ({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    z: Math.random(),
-                    vx: (Math.random() - 0.5) * 0.48,
-                    vy: (Math.random() - 0.5) * 0.42,
-                    vz: (Math.random() - 0.5) * 0.004,
-                    phase: Math.random() * Math.PI * 2
-                }));
+            function drawCurve(offset, amplitude, color, phase) {
+                ctx.beginPath();
+                for (let x = -20; x <= width + 20; x += 4) {
+                    const normalized = x / Math.max(width, 1);
+                    const y = height * (0.28 + offset) +
+                        Math.sin(normalized * 13 + phase) * height * amplitude +
+                        Math.sin(normalized * 31 + phase * 0.7) * height * amplitude * 0.28;
+                    if (x === -20) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.4;
+                ctx.stroke();
             }
 
-            function projectPoint(p, t) {
-                const oscillation = Math.sin(t * 0.001 + p.phase) * 0.08;
-                const depth = Math.max(0.1, Math.min(1.2, p.z + oscillation));
-                const perspective = 0.62 + depth * 0.52;
-                const cx = width * 0.58;
-                const cy = height * 0.5;
-                return {
-                    px: (p.x - cx) * perspective + cx,
-                    py: (p.y - cy) * perspective + cy,
-                    depth: depth
-                };
+            function drawBeam(startX, startY, endX, endY, color, alpha) {
+                const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+                gradient.addColorStop(0, `rgba(${color}, 0)`);
+                gradient.addColorStop(0.45, `rgba(${color}, ${alpha})`);
+                gradient.addColorStop(1, `rgba(${color}, 0.05)`);
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 2;
+                ctx.stroke();
             }
 
             function tick(ts) {
                 ctx.clearRect(0, 0, width, height);
+                const motion = prefersReducedMotion ? 0 : ts * 0.00045;
+                const glassX = width * 0.68;
+                const glassTop = height * 0.15;
+                const glassBottom = height * 0.86;
 
-                const connectPulse = 0.85 + Math.sin(ts * 0.0016) * 0.2;
-                const projected = particles.map((p) => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.z += p.vz;
+                ctx.fillStyle = "rgba(32, 104, 133, 0.10)";
+                ctx.fillRect(glassX, glassTop, 7, glassBottom - glassTop);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.48)";
+                ctx.fillRect(glassX + 9, glassTop, 3, glassBottom - glassTop);
+                ctx.strokeStyle = "rgba(44, 125, 150, 0.42)";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(glassX, glassTop, 12, glassBottom - glassTop);
 
-                    if (p.x < -10 || p.x > width + 10) p.vx *= -1;
-                    if (p.y < -10 || p.y > height + 10) p.vy *= -1;
-                    if (p.z < 0.04 || p.z > 0.98) p.vz *= -1;
+                drawBeam(width * 0.12, height * 0.28, glassX, height * 0.39, "243, 177, 58", 0.5);
+                drawBeam(width * 0.12, height * 0.48, glassX, height * 0.52, "243, 177, 58", 0.42);
+                drawBeam(glassX + 12, height * 0.52, width * 0.96, height * 0.66, "0, 127, 134", 0.62);
+                drawBeam(glassX, height * 0.39, width * 0.9, height * 0.22, "190, 100, 74", 0.35);
 
-                    return projectPoint(p, ts);
-                });
+                ctx.setLineDash([3, 5]);
+                ctx.strokeStyle = "rgba(55, 105, 130, 0.26)";
+                ctx.beginPath();
+                ctx.moveTo(width * 0.08, height * 0.78);
+                ctx.lineTo(width * 0.95, height * 0.78);
+                ctx.stroke();
+                ctx.setLineDash([]);
 
-                for (let i = 0; i < projected.length; i++) {
-                    for (let j = i + 1; j < projected.length; j++) {
-                        const a = projected[i];
-                        const b = projected[j];
-                        const dx = a.px - b.px;
-                        const dy = a.py - b.py;
-                        const dist = Math.hypot(dx, dy);
-                        const depthAvg = (a.depth + b.depth) / 2;
-                        const threshold = (96 + (1 - depthAvg) * 48) * connectPulse;
+                drawCurve(0.16, 0.08, "rgba(29, 119, 153, 0.42)", motion * 1.6);
+                drawCurve(0.35, 0.055, "rgba(0, 127, 134, 0.5)", motion * 1.15 + 1.4);
+                drawCurve(0.52, 0.042, "rgba(190, 100, 74, 0.38)", motion * 0.8 + 2.7);
 
-                        if (dist < threshold) {
-                            const alpha = (1 - dist / threshold) * (0.2 + depthAvg * 0.35);
-                            ctx.beginPath();
-                            ctx.moveTo(a.px, a.py);
-                            ctx.lineTo(b.px, b.py);
-                            ctx.strokeStyle = `rgba(84, 126, 170, ${alpha.toFixed(3)})`;
-                            ctx.lineWidth = 0.6 + depthAvg * 0.7;
-                            ctx.stroke();
-                        }
-                    }
-                }
+                ctx.font = "10px monospace";
+                ctx.fillStyle = "rgba(43, 91, 111, 0.68)";
+                ctx.fillText("300 nm", width * 0.08, height * 0.88);
+                ctx.fillText("2500 nm", width * 0.78, height * 0.88);
+                ctx.fillText("SPECTRAL ANALYSIS", width * 0.08, height * 0.11);
 
-                for (const p of projected) {
-                    const radius = 1.4 + p.depth * 1.9;
-                    const glow = 0.2 + p.depth * 0.34;
-                    ctx.beginPath();
-                    ctx.arc(p.px, p.py, radius, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(64, 112, 160, ${(0.35 + glow).toFixed(3)})`;
-                    ctx.fill();
-                }
-
-                if (!prefersReducedMotion) {
-                    rafId = window.requestAnimationFrame(tick);
-                }
+                if (!prefersReducedMotion) rafId = window.requestAnimationFrame(tick);
             }
 
             resize();
             window.addEventListener("resize", resize);
-
-            if (prefersReducedMotion) {
-                tick(0);
-                return;
-            }
-
-            rafId = window.requestAnimationFrame(tick);
-
+            tick(0);
             window.addEventListener("beforeunload", function () {
                 if (rafId) window.cancelAnimationFrame(rafId);
             });

@@ -105,7 +105,7 @@ def on_export_click(event):
         window.alert("暂无历史数据可导出！")
         return
         
-    csv_content = "Filename,VLT(%),Tser(%),UV Block(%),VLR(%)\n"
+    csv_content = "Filename,VLT(%),TSER(%),UV Block(%),VLR(%)\n"
     for item in history_data:
         vlr_str = f"{item['VLR_I']:.1f}" if item['VLR_I'] is not None else "N/A"
         csv_content += f"{item['name']},{item['VLT']:.1f},{item['TSER']:.1f},{item['UVB']:.1f},{vlr_str}\n"
