@@ -17,7 +17,8 @@ This project is built with an HTML frontend + PyScript (Python in the browser). 
   - Solar Heat Gain Coefficient `g`
   - Total Solar Energy Rejection `TSER`
   - Shading Coefficient `SC`
-- Local calculation history cache (`localStorage`)
+- Calculation history and complete spectrum data are stored locally in browser IndexedDB
+- Legacy `localStorage` history is migrated automatically on first launch, with fallback compatibility retained
 - History export to CSV
 - Solar spectrum visualization (original, direct transmitted, total transmitted)
 
@@ -25,6 +26,8 @@ This project is built with an HTML frontend + PyScript (Python in the browser). 
 
 - `index.html`: Main UI (upload + results)
 - `chart.html`: Spectrum chart page (Plotly)
+- `compare.html`: Sample comparison page
+- `storage.js`: IndexedDB storage and legacy data migration bridge
 - `main.py`: Event handling, UI updates, history management
 - `calculator.py`: Core calculation logic
 - `constants.py`: GB/T 2680 weighting factors and constants

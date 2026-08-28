@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>样品对比 - Window Film 计算器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="./storage.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root { --ink: #18324a; --muted: #657789; --canvas: #f3f6f8; --line: #d9e2e9; }
+        body { margin: 0; background: var(--canvas); color: var(--ink); font-family: "Aptos", "Segoe UI", sans-serif; }
+        .hero-header { position: relative; overflow: hidden; min-height: 160px; padding: 1.4rem 0; background: linear-gradient(90deg, #fff 0%, #eef3f8 46%, #d9e3ec 100%); border-bottom: 1px solid rgba(104,129,156,.24); box-shadow: 0 8px 20px rgba(39,58,78,.08); }
+        .hero-copy { position: relative; z-index: 2; max-width: min(760px, calc(100% - 130px)); }
+        .hero-tech-visual { position: absolute; inset: 0 0 0 48%; z-index: 1; opacity: .5; background: linear-gradient(90deg, transparent, rgba(197,213,228,.35) 42%, rgba(186,204,220,.56)); -webkit-mask-image: linear-gradient(90deg, transparent, #000 44%); mask-image: linear-gradient(90deg, transparent, #000 44%); }
+        .hero-tech-visual::after { content: "300 nm                 2500 nm"; position: absolute; right: 4%; bottom: 1.1rem; color: rgba(43,91,111,.68); font: 10px monospace; }
+        #header_canvas { width: 100%; height: 100%; }
+        .hero-logo { position: absolute; z-index: 3; right: 1rem; top: 50%; transform: translateY(-50%); width: 58px; }
+        .section-title { border-bottom: 1px solid var(--line); padding-bottom: .65rem; }
+        .panel { background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(24,50,74,.06); }
+        .table-responsive { border-radius: 8px; }
+        .comparison-table { min-width: 760px; }
+        .comparison-table th, .comparison-table td { vertical-align: middle; }
+        .metric-name { min-width: 250px; }
+        .metric-symbol { width: 100px; }
+        .sample-heading { min-width: 150px; color: #0b6670; }
+        .controls-panel { padding: 1rem; }
+        .sample-control { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem 1rem; padding: .7rem .85rem; border: 1px solid var(--line); border-radius: 6px; background: #fbfcfd; }
+        .sample-control + .sample-control { margin-top: .6rem; }
+        .sample-name { min-width: 150px; font-weight: 700; }
+        #comparison_chart { width: 100%; height: 560px; }
+        .back-button { position: fixed; z-index: 20; top: 1rem; left: 1rem; }
+        @media (max-width: 768px) { .hero-header { min-height: 140px; } .hero-copy { max-width: calc(100% - 94px); } .hero-copy .navbar-brand { font-size: 1.55rem !important; } .hero-copy p { font-size: .8rem !important; } #comparison_chart { height: 480px; } .sample-name { min-width: 100%; } }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="btn btn-light shadow-sm back-button">返回计算器</a>
+    <header class="hero-header mb-4">
+        <div class="container position-relative d-flex align-items-center" style="min-height: 120px;">
+            <div class="hero-tech-visual"><canvas id="header_canvas"></canvas></div>
+            <div class="hero-copy">
+                <div class="navbar-brand mb-0 fw-bold d-block" style="font-family: '3M Circular TT Book', '3M Circular', sans-serif; font-size: 2.2rem;">Window Film 计算器 (GB/T 2680)</div>
+                <p class="text-secondary mt-2 mb-0" style="font-size: .9rem; line-height: 1.6;">测试样品对比分析 · GB/T 2680 标准指标与太阳能透过谱图</p>
+            </div>
+            <a class="hero-logo" href="https://skydrive3m.sharepoint.com/SitePages/Home.aspx" target="_blank" rel="noopener noreferrer" title="打开 3M SharePoint 主页">
+                <img src="logo.svg" alt="3M Logo">
+            </a>
+        </div>
+    </header>
+
+    <main class="container pb-5">
+        <div id="empty_state" class="panel p-5 text-center text-secondary" style="display: none;">暂无可对比的测试样品，请返回计算器选择历史记录。</div>
+        <section id="comparison_content" style="display: none;">
+            <h4 class="section-title mb-3">GB/T 2680 标准指标详情</h4>
+            <div class="panel mb-4">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0 comparison-table">
+                        <thead class="table-light"><tr id="metric_header"><th class="metric-name">指标名称 (中/英)</th><th class="metric-symbol">符号</th></tr></thead>
+                        <tbody id="metric_body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h4 class="section-title mb-3">太阳能谱图</h4>
+            <div class="panel controls-panel mb-3">
+                <div class="small text-secondary mb-2">原始太阳能谱图始终显示为灰色虚线；选择样品及需要查看的透过曲线。</div>
+                <div id="curve_controls"></div>
+            </div>
+            <div class="panel"><div id="comparison_chart"></div></div>
+        </section>
+    </main>
+
+    <footer class="mt-5 mb-4 text-center text-dark fw-medium" style="font-size: 0.9rem;">
+        &copy; 3M 2026. All Rights Reserved. &nbsp;&nbsp; 3M Confidential.
+    </footer>
+
+    <script>
+        (async function () {
+            const historyKey = "gb2680_history_data";
+            const selectionKey = "gb2680_compare_selection";
+            const colors = ["#0057b8", "#e4572e", "#008c95", "#7656a6", "#4f8b57"];
+            const metrics = [
+                ["可见光透射比", "Visible Light Transmittance (VLT)", "\\tau_v", "VLT", "%"],
+                ["可见光-外反射比", "Visible Light External Reflectance", "\\rho_{v,e}", "VLR_E", "%"],
+                ["可见光-内反射比", "Visible Light Internal Reflectance", "\\rho_{v,i}", "VLR_I", "%"],
+                ["紫外线透射比", "Ultraviolet Transmittance (UVT)", "\\tau_{uv}", "UVT", "%"],
+                ["太阳光直接透射比", "Direct Solar Transmittance (DET)", "\\tau_e", "TE", "%"],
+                ["太阳光直接反射比", "Direct Solar Reflectance (DER)", "\\rho_e", "RE", "%"],
+                ["太阳能总透射比", "Solar Heat Gain Coefficient (g-value)", "g", "G", "%"],
+                ["总隔热率", "Total Solar Energy Rejection (TSER)", "TSER", "TSER", "%"],
+                ["遮阳系数", "Shading Coefficient", "SC", "SC", ""]
+            ];
+            let samples = [];
+            let chart;
+
+            function textCell(text, className) { const cell = document.createElement("td"); cell.className = className || ""; cell.textContent = text; return cell; }
+            function formatValue(value, key) { if (value === null || value === undefined) return "未提供"; return key === "SC" ? Number(value).toFixed(3) : Number(value).toFixed(2); }
+
+            function buildTable() {
+                const header = document.getElementById("metric_header");
+                samples.forEach((sample, index) => { const cell = document.createElement("th"); cell.className = "sample-heading text-center"; cell.textContent = sample.name || `样品 ${index + 1}`; header.appendChild(cell); });
+                const body = document.getElementById("metric_body");
+                metrics.forEach(([cn, en, symbol, key, unit]) => {
+                    const row = document.createElement("tr");
+                    const name = document.createElement("td"); name.className = "metric-name"; name.innerHTML = `${cn}<br><small class="text-muted">${en}</small>`; row.appendChild(name);
+                    const symbolCell = document.createElement("td"); symbolCell.className = "metric-symbol"; symbolCell.innerHTML = `\\(${symbol}\\)`; row.appendChild(symbolCell);
+                    samples.forEach(sample => row.appendChild(textCell(`${formatValue(sample[key], key)} ${unit}`.trim(), "text-center fw-bold")));
+                    body.appendChild(row);
+                });
+            }
+
+            function makeCheckbox(label, checked, onChange) {
+                const wrapper = document.createElement("label"); wrapper.className = "form-check form-check-inline mb-0";
+                const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input"; input.checked = checked; input.addEventListener("change", onChange);
+                const text = document.createElement("span"); text.className = "form-check-label small"; text.textContent = label; wrapper.append(input, text); return wrapper;
+            }
+
+            function renderChart() {
+                const traces = [{ x: samples[0].spectra.wl, y: samples[0].spectra.irr, name: "原始太阳能谱图", line: { color: "#6c757d", width: 1.6, dash: "dot" }, visible: true }];
+                samples.forEach((sample, index) => {
+                    const state = sample._state;
+                    if (!state.sample) return;
+                    if (state.direct) traces.push({ x: sample.spectra.wl, y: sample.spectra.direct, name: `${sample.name} · 直接透过（虚线）`, line: { color: colors[index], width: 2, dash: "dash" } });
+                    if (state.total) traces.push({ x: sample.spectra.wl, y: sample.spectra.total, name: `${sample.name} · 总透过（实线）`, line: { color: colors[index], width: 2.4 } });
+                });
+                const layout = { title: { text: "太阳能光谱分布 (300 - 2500nm)", font: { size: 22 } }, xaxis: { title: "波长 Wavelength (nm)", dtick: 500, showgrid: true, gridcolor: "#dfe5e9" }, yaxis: { title: "辐照度 Irradiance (W/m²)", showgrid: true, gridcolor: "#dfe5e9" }, hovermode: "x unified", legend: { title: { text: "样品 · 曲线类型" }, orientation: "h", y: -0.18 }, margin: { l: 75, r: 30, t: 70, b: 100 } };
+                Plotly.react("comparison_chart", traces, layout, { responsive: true, displayModeBar: true, scrollZoom: true });
+            }
+
+            function buildControls() {
+                const container = document.getElementById("curve_controls");
+                samples.forEach((sample, index) => {
+                    sample._state = { sample: true, direct: false, total: true };
+                    const row = document.createElement("div"); row.className = "sample-control";
+                    const name = document.createElement("span"); name.className = "sample-name"; name.style.color = colors[index]; name.textContent = sample.name || `样品 ${index + 1}`; row.appendChild(name);
+                    row.appendChild(makeCheckbox("显示样品", true, event => { sample._state.sample = event.target.checked; renderChart(); }));
+                    row.appendChild(makeCheckbox("直接透过谱图", false, event => { sample._state.direct = event.target.checked; renderChart(); }));
+                    row.appendChild(makeCheckbox("总透过谱图", true, event => { sample._state.total = event.target.checked; renderChart(); }));
+                    container.appendChild(row);
+                });
+            }
+
+            function drawHeader() {
+                const canvas = document.getElementById("header_canvas"); const ctx = canvas.getContext("2d"); const box = canvas.parentElement;
+                function resize() { const rect = box.getBoundingClientRect(); canvas.width = rect.width * 2; canvas.height = rect.height * 2; ctx.setTransform(2, 0, 0, 2, 0, 0); }
+                function tick(time) { const rect = box.getBoundingClientRect(); const width = rect.width; const height = rect.height; ctx.clearRect(0, 0, width, height); [0.28, 0.45, 0.62].forEach((offset, lineIndex) => { ctx.beginPath(); for (let x = 0; x < width; x += 4) { const y = height * offset + Math.sin(x / 28 + time * .0005 * (lineIndex + 1)) * 8; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.strokeStyle = ["rgba(40,120,181,.45)", "rgba(0,127,134,.5)", "rgba(195,108,54,.4)"][lineIndex]; ctx.lineWidth = 1.5; ctx.stroke(); }); requestAnimationFrame(tick); }
+                resize(); window.addEventListener("resize", resize); requestAnimationFrame(tick);
+            }
+
+            try {
+                const loadedHistory = await window.gb2680Storage.loadHistory();
+                const history = loadedHistory && loadedHistory.to_py ? loadedHistory.to_py() : loadedHistory;
+                const selected = JSON.parse(localStorage.getItem(selectionKey) || "[]").filter(index => Number.isInteger(index) && history[index] && history[index].spectra).slice(0, 5);
+                samples = selected.map(index => history[index]).filter(sample => sample && sample.spectra);
+            } catch (error) { samples = []; }
+            if (!samples.length) { document.getElementById("empty_state").style.display = "block"; return; }
+            document.getElementById("comparison_content").style.display = "block";
+            buildTable();
+            if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise();
+            buildControls(); renderChart(); drawHeader();
+        })();
+    </script>
+</body>
+</html>
