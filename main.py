@@ -8,28 +8,28 @@ try:
 except Exception:
     create_proxy = None
 
-# 从 localStorage 加载历史记录
-LOCAL_STORAGE_KEY = "gb2680_history_data"
+# 使用 IndexedDB 保存历史记录，storage.js 提供 localStorage 降级与旧数据迁移
 COMPARE_SELECTION_KEY = "gb2680_compare_selection"
 history_data = []
 compare_selection = []
 _event_proxies = []
 _calc_in_progress = False
 
-def load_history_from_storage():
+async def load_history_from_storage():
     global history_data
     try:
-        stored = window.localStorage.getItem(LOCAL_STORAGE_KEY)
-        if stored:
-            history_data = json.loads(stored)
+        loaded = await window.gb2680Storage.loadHistory()
+        history_data = json.loads(loaded.to_py()) if hasattr(loaded, "to_py") else loaded
+        if not isinstance(history_data, list):
+            history_data = []
     except:
         history_data = []
 
-def save_history_to_storage():
+async def save_history_to_storage():
     try:
-        window.localStorage.setItem(LOCAL_STORAGE_KEY, json.dumps(history_data))
+        window.gb2680Storage.saveHistory(history_data)
     except Exception as e:
-        print("Failed to save history to localStorage:", e)
+        print("Failed to save history to IndexedDB:", e)
 
 def clear_history_click(event):
     if window.confirm("确定要清空所有历史计算记录吗？"):
@@ -37,14 +37,14 @@ def clear_history_click(event):
         history_data = []
         compare_selection.clear()
         window.localStorage.removeItem(COMPARE_SELECTION_KEY)
-        save_history_to_storage()
+        window.gb2680Storage.clearHistory()
         render_history()
 
 def js_delete_history(idx):
     global history_data
     try:
         history_data.pop(int(idx))
-        save_history_to_storage()
+        window.gb2680Storage.saveHistory(history_data)
         render_history()
     except Exception as e:
         print("Delete error:", e)
@@ -84,7 +84,7 @@ def update_right_panel(res):
                 "fileIdent": res.get("name", "Unknown"),
                 "spectra": res["spectra"]
             }
-            window.localStorage.setItem("current_chart_data", json.dumps(chart_data))
+            window.gb2680Storage.saveChart(chart_data)
             document.getElementById("show_chart_link").style.display = "block"
         else:
             document.getElementById("show_chart_link").style.display = "none"
@@ -341,7 +341,7 @@ def on_calculate_click(event):
             if len(history_data) > 30:
                 history_data.pop()
             
-            save_history_to_storage()
+            window.gb2680Storage.saveHistory(history_data)
             render_history()
             
             # 调用新方法集中刷新右侧面板
@@ -362,15 +362,19 @@ def on_calculate_click(event):
             
     asyncio.ensure_future(process_files())
 
-load_history_from_storage()
-try:
-    stored_selection = window.localStorage.getItem(COMPARE_SELECTION_KEY)
-    if stored_selection:
-        compare_selection = [
-            int(index) for index in json.loads(stored_selection)
-            if 0 <= int(index) < len(history_data)
-        ][:5]
-except Exception:
-    compare_selection = []
-render_history()
-init_event_handlers()
+async def initialize_page():
+    global compare_selection
+    await load_history_from_storage()
+    try:
+        stored_selection = window.localStorage.getItem(COMPARE_SELECTION_KEY)
+        if stored_selection:
+            compare_selection = [
+                int(index) for index in json.loads(stored_selection)
+                if 0 <= int(index) < len(history_data)
+            ][:5]
+    except Exception:
+        compare_selection = []
+    render_history()
+    init_event_handlers()
+
+asyncio.ensure_future(initialize_page())

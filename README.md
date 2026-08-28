@@ -16,7 +16,8 @@
   - 太阳能总透射比 `g`
   - 总隔热率 `TSER`
   - 遮阳系数 `SC`
-- 计算历史本地缓存（`localStorage`）
+- 计算历史与完整谱图数据使用浏览器 IndexedDB 本地保存
+- 首次打开时自动迁移旧版 `localStorage` 历史数据，并保留降级兼容
 - 历史数据 CSV 导出
 - 太阳能谱图展示（原始、直接透过、总透过）
 
@@ -24,6 +25,8 @@
 
 - `index.html`：主页面与上传/结果展示 UI
 - `chart.html`：谱图展示页（Plotly）
+- `compare.html`：样品对比页
+- `storage.js`：IndexedDB 存储与旧版数据迁移桥接
 - `main.py`：页面交互、事件处理、历史记录逻辑
 - `calculator.py`：核心计算逻辑
 - `constants.py`：GB/T 2680 相关权重系数与常量
