@@ -27,9 +27,18 @@
             margin-top: 20%;
             color: #6c757d;
         }
+        .chart-toolbar {
+            position: fixed;
+            z-index: 10;
+            top: 1rem;
+            left: 1rem;
+        }
     </style>
 </head>
 <body>
+    <div class="chart-toolbar">
+        <a href="index.html" class="btn btn-light shadow-sm">返回计算器</a>
+    </div>
     <div id="no_data">
         <h2>暂无谱图数据。</h2>
         <p>请先在主页面上传文件并成功执行“开始计算”，然后再点击“显示谱图”。</p>

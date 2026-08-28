@@ -22,10 +22,33 @@
     <script type="module" src="https://pyscript.net/releases/2023.11.1/core.js"></script>
 
     <style>
-        body { background-color: #f8f9fa; }
-        .hero-value { font-size: 2.5rem; font-weight: bold; color: #dc3545; }
+        :root {
+            --ink: #18324a;
+            --muted: #657789;
+            --surface: #ffffff;
+            --canvas: #f3f6f8;
+            --line: #d9e2e9;
+            --accent: #007f86;
+        }
+
+        body { background: var(--canvas); color: var(--ink); font-family: "Aptos", "Segoe UI", sans-serif; }
+        .hero-value { font-size: 2.5rem; font-weight: bold; color: var(--ink); }
         .hero-label { font-size: 1.1rem; color: #6c757d; font-weight: 500; }
-        .result-card { text-align: center; padding: 20px; border-radius: 10px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .result-card { text-align: center; padding: 20px; border-radius: 8px; background: var(--surface); box-shadow: 0 8px 24px rgba(24, 50, 74, 0.07); }
+        .card { border-radius: 8px; border-color: var(--line) !important; }
+        .card-header { border-bottom: 0; padding: 1rem 1.1rem; }
+        .upload-item { padding: 0.85rem; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfd; }
+        .upload-item + .upload-item { margin-top: 0.75rem; }
+        .upload-item .form-control { margin-top: 0.4rem; }
+        .file-status { min-height: 1.2rem; color: var(--muted); font-size: 0.78rem; }
+        .file-status.ready { color: #147a57; font-weight: 600; }
+        .empty-state { padding: 2.7rem 1.5rem; border: 1px dashed #b8c9d5; border-radius: 8px; background: rgba(255,255,255,0.75); text-align: center; }
+        .empty-state-mark { display: inline-grid; place-items: center; width: 3.2rem; height: 3.2rem; margin-bottom: 1rem; border-radius: 50%; background: #dceff0; color: var(--accent); font-size: 1.4rem; }
+        .metric-vlt { border-color: #2878b5 !important; }
+        .metric-tser { border-color: #198754 !important; }
+        .metric-uvb { border-color: #d58a16 !important; }
+        .metric-vlr { border-color: #6c757d !important; }
+        .calculation-status { min-height: 1.5rem; color: var(--muted); font-size: 0.85rem; }
         .navbar-brand img { min-width: 50px; }
 
         .hero-header {
@@ -138,6 +161,11 @@
             .hero-logo-wrap img {
                 height: 46px !important;
             }
+
+            .hero-copy .navbar-brand { font-size: 1.55rem !important; }
+            .hero-copy p { font-size: 0.8rem !important; }
+            .hero-value { font-size: 2rem; }
+            .result-card { padding: 1rem 0.5rem; }
         }
     </style>
 </head>
@@ -169,26 +197,31 @@
                         <h5 class="card-title mb-0">1. 上传测试数据</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
+                        <p class="text-secondary small mb-3">请上传同一组测试中的光谱 CSV 文件。带 <span class="text-danger">*</span> 的项目为必需项。</p>
+                        <div class="upload-item">
                             <label for="trans_csv" class="form-label fw-bold">透光率 (T%) CSV <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="trans_csv" accept=".csv">
+                            <div id="trans_status" class="file-status" aria-live="polite">尚未选择文件</div>
                         </div>
-                        <div class="mb-3">
+                        <div class="upload-item">
                             <label for="refl_csv" class="form-label fw-bold">外反射率 (R%) CSV <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="refl_csv" accept=".csv">
+                            <div id="refl_status" class="file-status" aria-live="polite">尚未选择文件</div>
                         </div>
-                        <div class="mb-4">
+                        <div class="upload-item mb-3">
                             <label for="in_refl_csv" class="form-label fw-bold d-flex justify-content-between">
                                 内反射率 (R_in%) CSV
                                 <span class="badge bg-secondary">Optional (选填)</span>
                             </label>
                             <input type="file" class="form-control" id="in_refl_csv" accept=".csv">
+                            <div id="in_refl_status" class="file-status" aria-live="polite">未提供时将跳过室内反射率</div>
                         </div>
                           <div class="d-grid mt-3 gap-2">
-                              <button class="btn btn-primary btn-lg" id="calc_btn" py-click="on_calculate_click">开始计算</button>
-                              <a id="show_chart_link" href="chart.html" target="_blank" class="btn btn-outline-info" style="display: none;">显示谱图</a>
+                              <button class="btn btn-primary btn-lg" id="calc_btn" py-click="on_calculate_click"><span id="calc_btn_label">开始计算</span><span id="calc_spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display: none;"></span></button>
+                              <a id="show_chart_link" href="chart.html" target="_blank" class="btn btn-outline-info" style="display: none;">查看太阳能谱图</a>
                         </div>
-                        <div id="error_msg" class="text-danger mt-3 fw-bold"></div>
+                        <div id="calculation_status" class="calculation-status mt-3" role="status" aria-live="polite"></div>
+                        <div id="error_msg" class="alert alert-danger py-2 mt-2 mb-0" role="alert" style="display: none;"></div>
                     </div>
                 </div>
 
@@ -197,8 +230,8 @@
                     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">📜 计算历史</h5>
                         <div>
-                            <button class="btn btn-sm btn-outline-light me-1" py-click="clear_history_click" title="清空历史">🗑️</button>
-                            <button class="btn btn-sm btn-light fw-bold" id="export_btn" py-click="on_export_click">↓ 导出 CSV</button>
+                            <button class="btn btn-sm btn-outline-light me-1" py-click="clear_history_click" title="清空历史记录">清空</button>
+                            <button class="btn btn-sm btn-light fw-bold" id="export_btn" py-click="on_export_click">导出 CSV</button>
                         </div>
                     </div>
                     <div class="card-body p-2">
@@ -225,31 +258,36 @@
 
             <!-- Results Section -->
             <div class="col-md-7">
+                <div id="empty_state" class="empty-state mb-4">
+                    <div class="empty-state-mark">↗</div>
+                    <h4 class="mb-2">等待测试数据</h4>
+                    <p class="text-secondary mb-0">上传透光率和外反射率 CSV 后，计算结果会显示在这里。</p>
+                </div>
                 <div id="results_wrapper" style="display: none;">
                     
                     <!-- Layer 1: Highlight Results -->
                     <h4 class="mb-3 border-bottom pb-2">核心指标总览</h4>
                     <div class="row g-3 mb-4">
                         <div class="col-6">
-                            <div class="result-card border border-primary border-2">
+                            <div class="result-card metric-vlt border border-2">
                                 <div class="hero-label">可见光透光率 (VLT)</div>
                                 <div class="hero-value"><span id="hero_vlt">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="result-card border border-info border-2">
+                            <div class="result-card metric-tser border border-2">
                                 <div class="hero-label">总隔热率 (Tser)</div>
                                 <div class="hero-value"><span id="hero_tser">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="result-card border border-warning border-2">
+                            <div class="result-card metric-uvb border border-2">
                                 <div class="hero-label">紫外线阻隔率 (UV Block)</div>
                                 <div class="hero-value"><span id="hero_uvb">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
                         </div>
                         <div class="col-6" id="hero_vlr_box" style="display: none;">
-                            <div class="result-card border border-secondary border-2">
+                            <div class="result-card metric-vlr border border-2">
                                 <div class="hero-label">室内可见光反射率 (VLR)</div>
                                 <div class="hero-value"><span id="hero_vlr">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>

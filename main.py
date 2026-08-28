@@ -51,6 +51,7 @@ window.js_delete_history = js_delete_history
 def update_right_panel(res):
     try:
         document.getElementById("results_wrapper").style.display = "block"
+        document.getElementById("empty_state").style.display = "none"
         document.getElementById("hero_vlt").innerText = f"{res.get('VLT', 0):.1f}"
         document.getElementById("hero_uvb").innerText = f"{res.get('UVB', 0):.1f}"
         document.getElementById("hero_tser").innerText = f"{res.get('TSER', 0):.1f}"
@@ -185,12 +186,57 @@ def bind_click_handler_by_selector(selector, handler):
     except Exception as e:
         print(f"Bind click error for selector {selector}:", e)
 
+def get_file_count(file_input):
+    try:
+        return int(file_input.files.length)
+    except Exception:
+        try:
+            return len(file_input.files)
+        except Exception:
+            return 0
+
+def update_file_status(event):
+    file_input = event.target
+    status_id = {
+        "trans_csv": "trans_status",
+        "refl_csv": "refl_status",
+        "in_refl_csv": "in_refl_status"
+    }.get(file_input.id)
+    if not status_id:
+        return
+    status = document.getElementById(status_id)
+    if get_file_count(file_input) > 0:
+        selected_file = file_input.files.item(0)
+        status.innerText = f"已选择：{selected_file.name}"
+        status.className = "file-status ready"
+    elif file_input.id == "in_refl_csv":
+        status.innerText = "未提供时将跳过室内反射率"
+        status.className = "file-status"
+    else:
+        status.innerText = "尚未选择文件"
+        status.className = "file-status"
+
+def bind_change_handler(element_id, handler):
+    el = document.getElementById(element_id)
+    if not el:
+        return
+    try:
+        proxy = create_proxy(handler) if create_proxy is not None else handler
+        if create_proxy is not None:
+            _event_proxies.append(proxy)
+        el.addEventListener("change", proxy)
+    except Exception as e:
+        print(f"Bind change error for #{element_id}:", e)
+
 
 def init_event_handlers():
     # Keep py-click attributes, and bind explicitly as a fallback to avoid silent non-response.
     bind_click_handler_by_id("calc_btn", on_calculate_click)
     bind_click_handler_by_id("export_btn", on_export_click)
     bind_click_handler_by_selector("button[py-click='clear_history_click']", clear_history_click)
+    bind_change_handler("trans_csv", update_file_status)
+    bind_change_handler("refl_csv", update_file_status)
+    bind_change_handler("in_refl_csv", update_file_status)
 
 def on_calculate_click(event):
     global _calc_in_progress
@@ -200,33 +246,31 @@ def on_calculate_click(event):
 
     document.getElementById("results_wrapper").style.display = "none"
     document.getElementById("error_msg").innerHTML = ""
+    document.getElementById("error_msg").style.display = "none"
+    document.getElementById("calculation_status").innerText = ""
     document.getElementById("hero_vlr_box").style.display = "none"
 
     trans_file_input = document.getElementById("trans_csv")
     refl_file_input = document.getElementById("refl_csv")
     in_refl_file_input = document.getElementById("in_refl_csv")
 
-    def get_file_count(file_input):
-        try:
-            return int(file_input.files.length)
-        except Exception:
-            try:
-                return len(file_input.files)
-            except Exception:
-                return 0
-
     try:
         if get_file_count(trans_file_input) == 0 or get_file_count(refl_file_input) == 0:
-            document.getElementById("error_msg").innerHTML = "错误: 必须上传 透光率(T%) 和 室外反射率(R%) CSV 文件。"
+            document.getElementById("error_msg").innerHTML = "请先上传透光率 (T%) 和外反射率 (R%) CSV 文件。"
+            document.getElementById("error_msg").style.display = "block"
             return
     except Exception as e:
         document.getElementById("error_msg").innerHTML = f"文件读取异常: {str(e)}"
+        document.getElementById("error_msg").style.display = "block"
         return
 
     _calc_in_progress = True
     calc_btn = document.getElementById("calc_btn")
     if calc_btn:
         calc_btn.disabled = True
+    document.getElementById("calc_btn_label").innerText = "正在计算"
+    document.getElementById("calc_spinner").style.display = "inline-block"
+    document.getElementById("calculation_status").innerText = "正在读取光谱数据，请稍候..."
 
     async def process_files():
         global _calc_in_progress
@@ -244,6 +288,7 @@ def on_calculate_click(event):
             
             # 使用算法核心模块处理
             res = calculate_params(trans_text, refl_text, in_refl_text)
+            document.getElementById("calculation_status").innerText = "计算完成，结果已更新。"
             
             # 保存到历史，直接存入 res 字典(包含了所有指标与 spectra 光谱阵列)，用于随时切换浏览
             trans_name = str(trans_file.name)
@@ -266,10 +311,14 @@ def on_calculate_click(event):
             error_msg = f"计算出错: {str(e)}"
             print("Error in process_files:", error_msg)
             document.getElementById("error_msg").innerHTML = error_msg
+            document.getElementById("error_msg").style.display = "block"
+            document.getElementById("calculation_status").innerText = "计算未完成"
         finally:
             _calc_in_progress = False
             if calc_btn:
                 calc_btn.disabled = False
+            document.getElementById("calc_btn_label").innerText = "开始计算"
+            document.getElementById("calc_spinner").style.display = "none"
             
     asyncio.ensure_future(process_files())
 
