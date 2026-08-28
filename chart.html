@@ -33,6 +33,20 @@
             top: 1rem;
             left: 1rem;
         }
+        .download-data-button {
+            position: fixed;
+            z-index: 10;
+            right: 1rem;
+            bottom: 1rem;
+            display: none;
+        }
+
+        @media (max-width: 576px) {
+            .download-data-button {
+                right: 0.75rem;
+                bottom: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -45,6 +59,9 @@
     </div>
     
     <div id="chart_div"></div>
+    <button id="download_data_button" class="btn btn-dark shadow download-data-button" type="button">
+        下载谱图数据（CSV）
+    </button>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -64,6 +81,37 @@
 
             const spectra = data.spectra;
             const fileName = data.fileIdent || "未知文件";
+
+            function downloadSpectrumData() {
+                const wavelengths = spectra.wl || [];
+                const original = spectra.irr || [];
+                const direct = spectra.direct || [];
+                const total = spectra.total || [];
+                const rowCount = Math.max(wavelengths.length, original.length, direct.length, total.length);
+                const rows = [
+                    ["波长 (nm)", "原始太阳能辐照度 (W/m²)", "直接透过谱图", "总透过谱图"].join(",")
+                ];
+
+                for (let index = 0; index < rowCount; index += 1) {
+                    rows.push([
+                        wavelengths[index] ?? "",
+                        original[index] ?? "",
+                        direct[index] ?? "",
+                        total[index] ?? ""
+                    ].join(","));
+                }
+
+                const csvBlob = new Blob(["\ufeff" + rows.join("\n")], {type: "text/csv;charset=utf-8;"});
+                const downloadUrl = URL.createObjectURL(csvBlob);
+                const downloadLink = document.createElement("a");
+                const safeFileName = fileName.replace(/[\\/:*?"<>|]/g, "_");
+                downloadLink.href = downloadUrl;
+                downloadLink.download = "Spectrum_Data_" + safeFileName + ".csv";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+                URL.revokeObjectURL(downloadUrl);
+            }
 
             const traceOrig = {
                 x: spectra.wl,
@@ -141,6 +189,9 @@
             };
 
             Plotly.newPlot("chart_div", [traceOrig, traceDirect, traceTotal], layout, config);
+            const downloadButton = document.getElementById("download_data_button");
+            downloadButton.style.display = "block";
+            downloadButton.addEventListener("click", downloadSpectrumData);
         });
     </script>
 </body>
