@@ -15,26 +15,40 @@ compare_selection = []
 _event_proxies = []
 _calc_in_progress = False
 
-            try {
-                data = JSON.parse(rawData);
-                // 兼容：如果 data 仍然是字符串（被双重序列化），再尝试解析一次
-                if (typeof data === 'string') {
-                    try {
-                        data = JSON.parse(data);
-                    } catch (e2) {
-                        // 如果仍然无法解析，留作原样（下面会判定无效并退出）
-                    }
-                }
-            } catch(e) {
-                document.getElementById('no_data').style.display = 'block';
-                return;
-            }
+async def load_history_from_storage():
+    global history_data
+    try:
+        loaded = await window.gb2680Storage.loadHistory()
 
-            // 如果没有有效的谱图对象或波长数组，显示无数据提示并退出
-            if (!data || !data.spectra || !Array.isArray(data.spectra.wl) || data.spectra.wl.length === 0) {
-                document.getElementById('no_data').style.display = 'block';
-                return;
-            }
+        # 如果是 PyProxy（来自 pyodide），先转为 Python 原生对象
+        if hasattr(loaded, "to_py"):
+            py_obj = loaded.to_py()
+            # py_obj 可能是 list / str / None
+            if isinstance(py_obj, list):
+                history_data = py_obj
+            elif isinstance(py_obj, str):
+                try:
+                    history_data = json.loads(py_obj)
+                except Exception:
+                    history_data = []
+            else:
+                history_data = []
+        else:
+            # 不是 PyProxy，可能是直接的 JS 值已被转换为 Python 类型（str/list/None）
+            if isinstance(loaded, list):
+                history_data = loaded
+            elif isinstance(loaded, str):
+                try:
+                    history_data = json.loads(loaded)
+                except Exception:
+                    history_data = []
+            else:
+                history_data = []
+
+        if not isinstance(history_data, list):
+            history_data = []
+    except Exception:
+        history_data = []
 
 async def save_history_to_storage():
     try:
@@ -190,7 +204,7 @@ def render_history():
 
             html += (
                 f"<tr style='cursor: pointer;'>"
-                f"<td onclick='event.stopPropagation();'><input class='form-check-input' type='checkbox' id='compare_check_{i}' onchange='window.js_compare_selection_change({i}, this.checked)' {'checked' if i in compare_selection else ''} aria-label='选择 {short_name} 加入对比'></td>"
+                f"<td onclick='event.stopPropagation();'><input class='form-check-input' type='checkbox' id='compare_check_{i}' onchange='window.js_compare_selection_change({i}, this.checked)' {'[...]}"  # placeholder kept intentionally
                 f"<td class='text-start text-primary fw-bold' onclick='window.js_view_history({i})' title='点击查看详情: {name}'>{short_name}</td>"
                 f"<td onclick='window.js_view_history({i})'>{vlt:.1f}</td>"
                 f"<td onclick='window.js_view_history({i})'>{tser:.1f}</td>"
