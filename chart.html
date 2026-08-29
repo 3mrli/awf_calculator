@@ -73,16 +73,13 @@
                 return;
             }
             
-            let data;
+            let data = null;
             try {
+                // 兼容多种存储格式：有时数据被双重序列化（字符串内含 JSON）
                 data = JSON.parse(rawData);
-                // 兼容：如果 data 仍然是字符串（被双重序列化），再尝试解析一次
+                // 如果解析后仍是字符串，说明存在二次序列化，再解析一次
                 if (typeof data === 'string') {
-                    try {
-                        data = JSON.parse(data);
-                    } catch (e2) {
-                        // 如果仍然无法解析，留作原样（下面会判定无效并退出）
-                    }
+                    try { data = JSON.parse(data); } catch (e2) { /* leave as-is */ }
                 }
             } catch(e) {
                 document.getElementById('no_data').style.display = 'block';
@@ -155,7 +152,7 @@
 
             const layout = {
                 title: {
-                    text: '<b>太阳能光谱分布 (300 - 2500nm) - ' + fileName + '</b>',
+                    text: '<b>太阳能光��分布 (300 - 2500nm) - ' + fileName + '</b>',
                     font: { size: 24 }
                 },
                 xaxis: {
