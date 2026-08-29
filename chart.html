@@ -66,8 +66,9 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
+            // 从 storage 读取时，有可能得到字符串或对象（取决于不同浏览器/实现）
             const chartData = await window.gb2680Storage.loadChart();
-            const rawData = chartData ? JSON.stringify(chartData) : null;
+            const rawData = chartData ? (typeof chartData === "string" ? chartData : JSON.stringify(chartData)) : null;
             if (!rawData) {
                 document.getElementById('no_data').style.display = 'block';
                 return;
@@ -81,9 +82,16 @@
                 return;
             }
 
-            const spectra = data.spectra;
-            const fileName = data.fileIdent || "未知文件";
+            // 兼容性检查：确保 parse 后的对象包含 spectra（并尽可能兼容字段名）
+            const spectra = data && data.spectra ? data.spectra : null;
+            const fileName = (data && (data.fileIdent || data.name)) ? (data.fileIdent || data.name) : "未知文件";
 
+            // 如果没有有效的谱图数据则展示空状态并终止（防止后续直接访问 undefined 抛错）
+            if (!spectra || typeof spectra.wl === "undefined") {
+                document.getElementById('no_data').style.display = 'block';
+                return;
+            }
+            
             function downloadSpectrumData() {
                 const wavelengths = spectra.wl || [];
                 const original = spectra.irr || [];
@@ -159,7 +167,7 @@
                 yaxis: {
                     title: { text: "辐照度 Irradiance (W/m²)", font: {size: 16} },
                     showgrid: true,
-                    gridcolor: '#cccccc', // 强制实线显示 (默认即为实现，这里用较深灰色明确展现)
+                    gridcolor: '#cccccc',
                     zeroline: true,
                     zerolinecolor: '#999999'
                 },
