@@ -15,15 +15,26 @@ compare_selection = []
 _event_proxies = []
 _calc_in_progress = False
 
-async def load_history_from_storage():
-    global history_data
-    try:
-        loaded = await window.gb2680Storage.loadHistory()
-        history_data = json.loads(loaded.to_py()) if hasattr(loaded, "to_py") else loaded
-        if not isinstance(history_data, list):
-            history_data = []
-    except:
-        history_data = []
+            try {
+                data = JSON.parse(rawData);
+                // 兼容：如果 data 仍然是字符串（被双重序列化），再尝试解析一次
+                if (typeof data === 'string') {
+                    try {
+                        data = JSON.parse(data);
+                    } catch (e2) {
+                        // 如果仍然无法解析，留作原样（下面会判定无效并退出）
+                    }
+                }
+            } catch(e) {
+                document.getElementById('no_data').style.display = 'block';
+                return;
+            }
+
+            // 如果没有有效的谱图对象或波长数组，显示无数据提示并退出
+            if (!data || !data.spectra || !Array.isArray(data.spectra.wl) || data.spectra.wl.length === 0) {
+                document.getElementById('no_data').style.display = 'block';
+                return;
+            }
 
 async def save_history_to_storage():
     try:
