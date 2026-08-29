@@ -76,7 +76,21 @@
             let data;
             try {
                 data = JSON.parse(rawData);
+                // 兼容：如果 data 仍然是字符串（被双重序列化），再尝试解析一次
+                if (typeof data === 'string') {
+                    try {
+                        data = JSON.parse(data);
+                    } catch (e2) {
+                        // 如果仍然无法解析，留作原样（下面会判定无效并退出）
+                    }
+                }
             } catch(e) {
+                document.getElementById('no_data').style.display = 'block';
+                return;
+            }
+
+            // 如果没有有效的谱图对象或波长数组，显示无数据提示并退出
+            if (!data || !data.spectra || !Array.isArray(data.spectra.wl) || data.spectra.wl.length === 0) {
                 document.getElementById('no_data').style.display = 'block';
                 return;
             }
