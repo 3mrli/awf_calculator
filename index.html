@@ -1,42 +1,192 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3M Window Film Optical Performance Calculator</title>
+    <title>3M Window Film 计算器 (GB/T 2680)</title>
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3My4wMSA0OSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOnJlZDt9PC9zdHlsZT48L2RlZnM+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNTAuMzgsMTIuNTJsLTMuNDUsMTQtMy40Ni0xNGgtMTB2NS4xN0MzMi4yNywxMy4xNiwyNy44MiwxMiwyMy44NSwxMiwxOSwxMS45LDEzLjYyLDE0LDEzLjQ0LDIwLjQxaDYuN2EzLjIsMy4yLDAsMCwxLDMuNDUtM2MyLjA1LDAsMywuODYsMy4wNSwyLjIyLS4wNywxLjE5LS43NywyLTMsMkgyMS4zNXY0LjY1aDJjMS4xNiwwLDIuNzguNjQsMi44NCwyLjI5LjA4LDItMS4yOSwyLjg1LTMsMi44Ni0zLS4xMS0zLjc5LTIuNDMtMy43OS00LjQyaC03YzAsMS4zNCwwLDEwLjA5LDEwLjksMTAsNS4yMy4wNSw5LTIuMTUsMTAuMS01LjE4VjM2LjVoNi43MlYyMS4zN0w0My45MywzNi41aDZsMy43My0xNS4xMVYzNi41Mmg2Ljg1di0yNFptLTE2Ljg3LDE0YTUuMyw1LjMsMCwwLDAtMi43NC0yLjc5LDQuNjMsNC42MywwLDAsMCwyLjc0LTMuMloiLz48L3N2Zz4=" type="image/svg+xml">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3My4wMSA0OSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOnJlZDt9PC9zdHlsZT48L2RlZnM+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNTAuMzgsMTIuNTJsLTMuNDUsMTQtMy40Ni0xNGgtMTB2NS4xN0MzMi4yNywxMy4xNiwyNy44MiwxMiwyMy44NSwxMiwxOSwxMS45LDEzLjYyLDE0LDEzLjQ0LDIwLjQxaDYuN2EzLjIsMy4yLDAsMCwxLDMuNDUtM2MyLjA1LDAsMywuODYsMy4wNSwyLjIyLS4wNywxLjE5LS43NywyLTMsMkgyMS4zNXY0LjY1aDJjMS4xNiwwLDIuNzguNjQsMi44NCwyLjI5LjA4LDItMS4yOSwyLjg1LTMsMi44Ni0zLS4xMS0zLjc5LTIuNDMtMy43OS00LjQyaC03YzAsMS4zNCwwLDEwLjA5LDEwLjksMTAsNS4yMy4wNSw5LTIuMTUsMTAuMS01LjE4VjM2LjVoNi43MlYyMS4zN0w0My45MywzNi41aDZsMy43My0xNS4xMVYzNi41Mmg2Ljg1di0yNFptLTE2Ljg3LDE0YTUuMyw1LjMsMCwwLDAtMi43NC0yLjc5LDQuNjMsNC42MywwLDAsMCwyLjc0LTMuMloiLz48L3N2Zz4=">
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- MathJax -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="./storage.js"></script>
 
     <!-- PyScript -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2023.11.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2023.11.1/core.js"></script>
 
     <style>
-        body { background-color: #f8f9fa; }
-        .hero-value { font-size: 2.5rem; font-weight: bold; color: #dc3545; }
+        :root {
+            --ink: #18324a;
+            --muted: #657789;
+            --surface: #ffffff;
+            --canvas: #f3f6f8;
+            --line: #d9e2e9;
+            --accent: #007f86;
+        }
+
+        body { background: var(--canvas); color: var(--ink); font-family: "Aptos", "Segoe UI", sans-serif; }
+        .hero-value { font-size: 2.5rem; font-weight: bold; color: var(--ink); }
         .hero-label { font-size: 1.1rem; color: #6c757d; font-weight: 500; }
-        .result-card { text-align: center; padding: 20px; border-radius: 10px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .result-card { text-align: center; padding: 20px; border-radius: 8px; background: var(--surface); box-shadow: 0 8px 24px rgba(24, 50, 74, 0.07); }
+        .card { border-radius: 8px; border-color: var(--line) !important; }
+        .card-header { border-bottom: 0; padding: 1rem 1.1rem; }
+        .upload-item { padding: 0.85rem; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfd; }
+        .upload-item + .upload-item { margin-top: 0.75rem; }
+        .upload-item .form-control { margin-top: 0.4rem; }
+        .file-status { min-height: 1.2rem; color: var(--muted); font-size: 0.78rem; }
+        .file-status.ready { color: #147a57; font-weight: 600; }
+        .empty-state { padding: 2.7rem 1.5rem; border: 1px dashed #b8c9d5; border-radius: 8px; background: rgba(255,255,255,0.75); text-align: center; }
+        .empty-state-mark { display: inline-grid; place-items: center; width: 3.2rem; height: 3.2rem; margin-bottom: 1rem; border-radius: 50%; background: #dceff0; color: var(--accent); font-size: 1.4rem; }
+        .metric-vlt { border-color: #2878b5 !important; }
+        .metric-tser { border-color: #198754 !important; }
+        .metric-uvb { border-color: #d58a16 !important; }
+        .metric-vlr { border-color: #6c757d !important; }
+        .calculation-status { min-height: 1.5rem; color: var(--muted); font-size: 0.85rem; }
+        .navbar-brand img { min-width: 50px; }
+
+        .hero-header {
+            position: relative;
+            overflow: hidden;
+            padding: 0;
+            background: linear-gradient(90deg, #ffffff 0%, #eef3f8 46%, #d9e3ec 100%);
+            border-bottom: 1px solid rgba(104, 129, 156, 0.24);
+            box-shadow: 0 8px 20px rgba(39, 58, 78, 0.08);
+        }
+
+        .hero-header-inner {
+            position: relative;
+            z-index: 2;
+            min-height: 160px;
+            padding: 1.4rem 0;
+        }
+
+        .hero-copy {
+            max-width: min(760px, calc(100% - 360px));
+        }
+
+        .hero-tech-visual {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 48%;
+            height: auto;
+            transform: none;
+            min-width: 280px;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.18) 18%, #000 48%, #000 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.18) 18%, #000 48%, #000 100%);
+            background:
+                linear-gradient(90deg, rgba(217, 227, 236, 0) 0%, rgba(197, 213, 228, 0.18) 38%, rgba(186, 204, 220, 0.56) 100%),
+                radial-gradient(circle at 88% 28%, rgba(90, 130, 170, 0.26), transparent 48%);
+        }
+
+        .hero-tech-visual::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background:
+                linear-gradient(90deg, rgba(236, 242, 248, 0.7) 0%, rgba(236, 242, 248, 0.36) 22%, rgba(236, 242, 248, 0) 48%),
+                linear-gradient(270deg, rgba(217, 227, 236, 0.9) 0%, rgba(217, 227, 236, 0) 22%),
+                linear-gradient(180deg, rgba(230, 238, 246, 0.85) 0%, rgba(230, 238, 246, 0) 20%),
+                linear-gradient(0deg, rgba(217, 227, 236, 0.85) 0%, rgba(217, 227, 236, 0) 20%);
+        }
+
+        #tech_network_canvas {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            opacity: 0.9;
+        }
+
+        .hero-logo-wrap {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            z-index: 3;
+            margin: 0;
+            padding: 0;
+            border-radius: 10px;
+        }
+
+        .hero-logo-wrap.navbar-brand {
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-right: 0;
+        }
+
+        @media (max-width: 992px) {
+            .hero-tech-visual {
+                width: 50%;
+                min-width: 200px;
+                opacity: 0.75;
+            }
+
+            .hero-copy {
+                max-width: min(640px, calc(100% - 270px));
+            }
+
+            .hero-logo-wrap {
+                right: 8px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-header-inner {
+                min-height: 140px;
+            }
+
+            .hero-tech-visual {
+                width: 48%;
+                min-width: 140px;
+                opacity: 0.45;
+            }
+
+            .hero-copy {
+                max-width: calc(100% - 94px);
+            }
+
+            .hero-logo-wrap img {
+                height: 46px !important;
+            }
+
+            .hero-copy .navbar-brand { font-size: 1.55rem !important; }
+            .hero-copy p { font-size: 0.8rem !important; }
+            .hero-value { font-size: 2rem; }
+            .result-card { padding: 1rem 0.5rem; }
+        }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-light bg-white py-4 shadow-sm mb-4">
-      <div class="container align-items-center">
-        <span class="navbar-brand mb-0 fw-bold" style="font-family: '3M Circular TT Book', '3M Circular', sans-serif; font-size: 2.2rem;">Window Film 计算器 (GB/T 2680)</span>
-        <!-- Reserved space for 3M Logo -->
-        <a class="navbar-brand m-0" href="#">
-            <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3My4wMSA0OSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOnJlZDt9PC9zdHlsZT48L2RlZnM+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNTAuMzgsMTIuNTJsLTMuNDUsMTQtMy40Ni0xNGgtMTB2NS4xN0MzMi4yNywxMy4xNiwyNy44MiwxMiwyMy44NSwxMiwxOSwxMS45LDEzLjYyLDE0LDEzLjQ0LDIwLjQxaDYuN2EzLjIsMy4yLDAsMCwxLDMuNDUtM2MyLjA1LDAsMywuODYsMy4wNSwyLjIyLS4wNywxLjE5LS43NywyLTMsMkgyMS4zNXY0LjY1aDJjMS4xNiwwLDIuNzguNjQsMi44NCwyLjI5LjA4LDItMS4yOSwyLjg1LTMsMi44Ni0zLS4xMS0zLjc5LTIuNDMtMy43OS00LjQyaC03YzAsMS4zNCwwLDEwLjA5LDEwLjksMTAsNS4yMy4wNSw5LTIuMTUsMTAuMS01LjE4VjM2LjVoNi43MlYyMS4zN0w0My45MywzNi41aDZsMy43My0xNS4xMVYzNi41Mmg2Ljg1di0yNFptLTE2Ljg3LDE0YTUuMyw1LjMsMCwwLDAtMi43NC0yLjc5LDQuNjMsNC42MywwLDAsMCwyLjc0LTMuMloiLz48L3N2Zz4=" alt="3M Logo" style="height: 85px; width: auto; object-fit: contain;">
+    <nav class="navbar navbar-light hero-header mb-4">
+      <div class="container hero-header-inner align-items-center">
+        <div class="hero-tech-visual" aria-hidden="true">
+            <canvas id="tech_network_canvas"></canvas>
+        </div>
+
+        <div class="d-flex flex-column me-auto pe-4 hero-copy">
+            <span class="navbar-brand mb-0 fw-bold text-wrap" style="font-family: '3M Circular TT Book', '3M Circular', sans-serif; font-size: 2.2rem;">Window Film 计算器 (GB/T 2680)</span>
+            <p class="text-secondary mt-2 mb-0" style="font-size: 0.9rem; line-height: 1.6; max-width: 850px;">本工具严格遵循国家标准 《<strong>GB/T 2680</strong> 建筑玻璃 可见光透射比、太阳光直接透射比、太阳能总透射比、紫外线透射比及有关窗玻璃参数的测定》，支持直接解析Lambda分光光度计原始光谱数据，将原本耗时、繁琐的 Excel 查表与人工积分转换工作，简化为"一键式"的秒级计算。</p>
+        </div>
+        <!-- 3M Logo -->
+        <a class="navbar-brand m-0 hero-logo-wrap" href="https://skydrive3m.sharepoint.com/SitePages/Home.aspx" target="_blank" rel="noopener noreferrer" title="打开 3M SharePoint 主页">
+                        <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3My4wMSA0OSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOnJlZDt9PC9zdHlsZT48L2RlZnM+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNTAuMzgsMTIuNTJsLTMuNDUsMTQtMy40Ni0xNGgtMTB2NS4xN0MzMi4yNywxMy4xNiwyNy44MiwxMiwyMy44NSwxMiwxOSwxMS45LDEzLjYyLDE0LDEzLjQ0LDIwLjQxaDYuN2EzLjIsMy4yLDAsMCwxLDMuNDUtM2MyLjA1LDAsMywuODYsMy4wNSwyLjIyLS4wNywxLjE5LS43NywyLTMsMkgyMS4zNXY0LjY1aDJjMS4xNiwwLDIuNzguNjQsMi44NCwyLjI5LjA4LDItMS4yOSwyLjg1LTMsMi44Ni0zLS4xMS0zLjc5LTIuNDMtMy43OS00LjQyaC03YzAsMS4zNCwwLDEwLjA5LDEwLjksMTAsNS4yMy4wNSw5LTIuMTUsMTAuMS01LjE4VjM2LjVoNi43MlYyMS4zN0w0My45MywzNi41aDZsMy43My0xNS4xMVYzNi41Mmg2Ljg1di0yNFptLTE2Ljg3LDE0YTUuMyw1LjMsMCwwLDAtMi43NC0yLjc5LDQuNjMsNC42MywwLDAsMCwyLjc0LTMuMloiLz48L3N2Zz4=" alt="3M Logo" class="img-fluid" style="height: 60px; width: auto; object-fit: contain;">
         </a>
       </div>
     </nav>
@@ -50,26 +200,31 @@
                         <h5 class="card-title mb-0">1. 上传测试数据</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
+                        <p class="text-secondary small mb-3">请上传同一组测试中的光谱 CSV 文件。带 <span class="text-danger">*</span> 的项目为必需项。</p>
+                        <div class="upload-item">
                             <label for="trans_csv" class="form-label fw-bold">透光率 (T%) CSV <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="trans_csv" accept=".csv">
+                            <div id="trans_status" class="file-status" aria-live="polite">尚未选择文件</div>
                         </div>
-                        <div class="mb-3">
+                        <div class="upload-item">
                             <label for="refl_csv" class="form-label fw-bold">外反射率 (R%) CSV <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="refl_csv" accept=".csv">
+                            <div id="refl_status" class="file-status" aria-live="polite">尚未选择文件</div>
                         </div>
-                        <div class="mb-4">
+                        <div class="upload-item mb-3">
                             <label for="in_refl_csv" class="form-label fw-bold d-flex justify-content-between">
                                 内反射率 (R_in%) CSV
                                 <span class="badge bg-secondary">Optional (选填)</span>
                             </label>
                             <input type="file" class="form-control" id="in_refl_csv" accept=".csv">
+                            <div id="in_refl_status" class="file-status" aria-live="polite">未提供时将跳过室内反射率</div>
                         </div>
                           <div class="d-grid mt-3 gap-2">
-                              <button class="btn btn-primary btn-lg" id="calc_btn" py-click="on_calculate_click">开始计算</button>
-                              <a id="show_chart_link" href="chart.html" target="_blank" class="btn btn-outline-info" style="display: none;">显示谱图</a>
+                              <button class="btn btn-primary btn-lg" id="calc_btn" py-click="on_calculate_click"><span id="calc_btn_label">开始计算</span><span id="calc_spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display: none;"></span></button>
+                              <a id="show_chart_link" href="chart.html" target="_blank" class="btn btn-outline-info" style="display: none;">查看太阳能谱图</a>
                         </div>
-                        <div id="error_msg" class="text-danger mt-3 fw-bold"></div>
+                        <div id="calculation_status" class="calculation-status mt-3" role="status" aria-live="polite"></div>
+                        <div id="error_msg" class="alert alert-danger py-2 mt-2 mb-0" role="alert" style="display: none;"></div>
                     </div>
                 </div>
 
@@ -78,8 +233,9 @@
                     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">📜 计算历史</h5>
                         <div>
-                            <button class="btn btn-sm btn-outline-light me-1" py-click="clear_history_click" title="清空历史">🗑️</button>
-                            <button class="btn btn-sm btn-light fw-bold" id="export_btn" py-click="on_export_click">↓ 导出 CSV</button>
+                            <button class="btn btn-sm btn-outline-light me-1" py-click="clear_history_click" title="清空历史记录">清空</button>
+                            <button class="btn btn-sm btn-light fw-bold" id="export_btn" py-click="on_export_click">导出 CSV</button>
+                            <button class="btn btn-sm btn-warning fw-bold ms-1" id="compare_btn" py-click="on_compare_click" disabled>加入对比 <span id="compare_count">0/5</span></button>
                         </div>
                     </div>
                     <div class="card-body p-2">
@@ -87,16 +243,17 @@
                             <table class="table table-sm table-striped table-hover mb-0 text-center" style="font-size: 0.85rem;">
                                 <thead class="table-light">
                                     <tr>
+                                        <th aria-label="选择"></th>
                                         <th class="text-start">文件标识</th>
-                                        <th>VLT</th>
-                                        <th>Tser</th>
-                                        <th>UVB</th>
+                                        <th>VLT(%)</th>
+                                        <th>TSER(%)</th>
+                                        <th>UVB(%)</th>
                                         <th>VLR</th>
                                         <th>操作</th>
                                     </tr>
                                 </thead>
                                 <tbody id="history_tbody">
-                                    <tr><td colspan="6" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>
+                                    <tr><td colspan="7" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -106,31 +263,36 @@
 
             <!-- Results Section -->
             <div class="col-md-7">
+                <div id="empty_state" class="empty-state mb-4">
+                    <div class="empty-state-mark">↗</div>
+                    <h4 class="mb-2">等待测试数据</h4>
+                    <p class="text-secondary mb-0">上传透光率和外反射率 CSV 后，计算结果会显示在这里。</p>
+                </div>
                 <div id="results_wrapper" style="display: none;">
                     
                     <!-- Layer 1: Highlight Results -->
                     <h4 class="mb-3 border-bottom pb-2">核心指标总览</h4>
                     <div class="row g-3 mb-4">
                         <div class="col-6">
-                            <div class="result-card border border-primary border-2">
+                            <div class="result-card metric-vlt border border-2">
                                 <div class="hero-label">可见光透光率 (VLT)</div>
                                 <div class="hero-value"><span id="hero_vlt">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="result-card border border-info border-2">
-                                <div class="hero-label">总隔热率 (Tser)</div>
+                            <div class="result-card metric-tser border border-2">
+                                <div class="hero-label">总隔热率 (TSER)</div>
                                 <div class="hero-value"><span id="hero_tser">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="result-card border border-warning border-2">
+                            <div class="result-card metric-uvb border border-2">
                                 <div class="hero-label">紫外线阻隔率 (UV Block)</div>
                                 <div class="hero-value"><span id="hero_uvb">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
                         </div>
                         <div class="col-6" id="hero_vlr_box" style="display: none;">
-                            <div class="result-card border border-secondary border-2">
+                            <div class="result-card metric-vlr border border-2">
                                 <div class="hero-label">室内可见光反射率 (VLR)</div>
                                 <div class="hero-value"><span id="hero_vlr">-</span><span class="fs-4 text-muted">%</span></div>
                             </div>
@@ -156,12 +318,12 @@
                                         <td class="text-end fw-bold"><span id="res_vlt">-</span> %</td>
                                     </tr>
                                     <tr>
-                                        <td>可见光室外反射比<br><small class="text-muted">Visible Light External Reflectance</small></td>
+                                        <td>可见光-外反射比<br><small class="text-muted">Visible Light External Reflectance</small></td>
                                         <td>\(\rho_{v,e}\)</td>
                                         <td class="text-end fw-bold"><span id="res_vlr_e">-</span> %</td>
                                     </tr>
                                     <tr id="row_vlr_i" class="text-secondary opacity-50">
-                                        <td>可见光室内反射比<br><small>Visible Light Internal Reflectance</small></td>
+                                        <td>可见光-内反射比<br><small>Visible Light Internal Reflectance</small></td>
                                         <td>\(\rho_{v,i}\)</td>
                                         <td class="text-end font-monospace"><span id="res_vlr_i">未提供数据</span></td>
                                     </tr>
@@ -195,23 +357,168 @@
                         </div>
                     </div>
 
-
-                    </div>
-
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- PyScript Config -->
-    <py-config>
-        packages = ["pandas", "numpy"]
-        [[fetch]]
-        files = ["./main.py", "./calculator.py", "./constants.py", "./CIE241_H1_5nm.csv"]
-    </py-config>
+    <!-- Footer -->
+    <footer class="mt-5 mb-4 text-center text-dark fw-medium" style="font-size: 0.9rem;">
+        &copy; 3M 2026. All Rights Reserved. &nbsp;&nbsp; 3M Confidential.
+    </footer>
 
-    <!-- App Entry -->
-    <script type="py" src="./main.py"></script>
+    <script>
+        (function () {
+            const canvas = document.getElementById("tech_network_canvas");
+            if (!canvas) return;
+
+            const container = canvas.parentElement;
+            const ctx = canvas.getContext("2d", { alpha: true });
+            if (!ctx || !container) return;
+
+            const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            let width = 0;
+            let height = 0;
+            let rafId = null;
+
+            function resize() {
+                const rect = container.getBoundingClientRect();
+                width = Math.max(1, rect.width);
+                height = Math.max(1, rect.height);
+                canvas.width = Math.floor(width * dpr);
+                canvas.height = Math.floor(height * dpr);
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            function drawCurve(offset, amplitude, color, phase) {
+                ctx.beginPath();
+                for (let x = -20; x <= width + 20; x += 4) {
+                    const normalized = x / Math.max(width, 1);
+                    const y = height * (0.28 + offset) +
+                        Math.sin(normalized * 13 + phase) * height * amplitude +
+                        Math.sin(normalized * 31 + phase * 0.7) * height * amplitude * 0.28;
+                    if (x === -20) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.4;
+                ctx.stroke();
+            }
+
+            function drawBeam(startX, startY, endX, endY, color, alpha) {
+                const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+                gradient.addColorStop(0, `rgba(${color}, 0)`);
+                gradient.addColorStop(0.45, `rgba(${color}, ${alpha})`);
+                gradient.addColorStop(1, `rgba(${color}, 0.05)`);
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            function tick(ts) {
+                ctx.clearRect(0, 0, width, height);
+                const motion = prefersReducedMotion ? 0 : ts * 0.00045;
+                const glassX = width * 0.68;
+                const glassTop = height * 0.15;
+                const glassBottom = height * 0.86;
+
+                ctx.fillStyle = "rgba(32, 104, 133, 0.10)";
+                ctx.fillRect(glassX, glassTop, 7, glassBottom - glassTop);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.48)";
+                ctx.fillRect(glassX + 9, glassTop, 3, glassBottom - glassTop);
+                ctx.strokeStyle = "rgba(44, 125, 150, 0.42)";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(glassX, glassTop, 12, glassBottom - glassTop);
+
+                drawBeam(width * 0.12, height * 0.28, glassX, height * 0.39, "243, 177, 58", 0.5);
+                drawBeam(width * 0.12, height * 0.48, glassX, height * 0.52, "243, 177, 58", 0.42);
+                drawBeam(glassX + 12, height * 0.52, width * 0.96, height * 0.66, "0, 127, 134", 0.62);
+                drawBeam(glassX, height * 0.39, width * 0.9, height * 0.22, "190, 100, 74", 0.35);
+
+                ctx.setLineDash([3, 5]);
+                ctx.strokeStyle = "rgba(55, 105, 130, 0.26)";
+                ctx.beginPath();
+                ctx.moveTo(width * 0.08, height * 0.78);
+                ctx.lineTo(width * 0.95, height * 0.78);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                drawCurve(0.16, 0.08, "rgba(29, 119, 153, 0.42)", motion * 1.6);
+                drawCurve(0.35, 0.055, "rgba(0, 127, 134, 0.5)", motion * 1.15 + 1.4);
+                drawCurve(0.52, 0.042, "rgba(190, 100, 74, 0.38)", motion * 0.8 + 2.7);
+
+                ctx.font = "10px monospace";
+                ctx.fillStyle = "rgba(43, 91, 111, 0.68)";
+                ctx.fillText("300 nm", width * 0.08, height * 0.88);
+                ctx.fillText("2500 nm", width * 0.78, height * 0.88);
+                ctx.fillText("SPECTRAL ANALYSIS", width * 0.08, height * 0.11);
+
+                if (!prefersReducedMotion) rafId = window.requestAnimationFrame(tick);
+            }
+
+            resize();
+            window.addEventListener("resize", resize);
+            tick(0);
+            window.addEventListener("beforeunload", function () {
+                if (rafId) window.cancelAnimationFrame(rafId);
+            });
+        })();
+
+        // 原生 JavaScript 实时更新文件选择状态与 PyScript 就绪提示
+        document.addEventListener("DOMContentLoaded", function () {
+            function setupFileInput(inputId, statusId, defaultText) {
+                const input = document.getElementById(inputId);
+                const status = document.getElementById(statusId);
+                if (!input || !status) return;
+
+                function update() {
+                    if (input.files && input.files.length > 0) {
+                        status.innerText = "已选择：" + input.files[0].name;
+                        status.className = "file-status ready";
+                    } else {
+                        status.innerText = defaultText;
+                        status.className = "file-status";
+                    }
+                }
+
+                input.addEventListener("change", update);
+                update();
+            }
+
+            setupFileInput("trans_csv", "trans_status", "尚未选择文件");
+            setupFileInput("refl_csv", "refl_status", "尚未选择文件");
+            setupFileInput("in_refl_csv", "in_refl_status", "未提供时将跳过室内反射率");
+
+            const calcBtn = document.getElementById("calc_btn");
+            const calcStatus = document.getElementById("calculation_status");
+
+            if (calcStatus && !window.py_ready) {
+                calcStatus.innerText = "正在加载 Python 计算引擎（包含 numpy/pandas），请稍候...";
+            }
+
+            if (calcBtn) {
+                calcBtn.addEventListener("click", function (e) {
+                    if (!window.py_ready) {
+                        e.preventDefault();
+                        if (calcStatus) {
+                            calcStatus.innerText = "Python 计算引擎仍在加载初始化中（需几秒钟），请稍候后再试...";
+                        }
+                    } else if (typeof window.on_calculate_click === "function") {
+                        window.on_calculate_click(e);
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- PyScript Config & App Entry -->
+    <script type="py" config="./pyscript.toml" src="./main.py"></script>
 </body>
 </html>
-

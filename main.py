@@ -1,39 +1,80 @@
-﻿import asyncio
+import asyncio
 import json
 from pyscript import document, window
 from calculator import calculate_params
 
-# 从 localStorage 加载历史记录
-LOCAL_STORAGE_KEY = "gb2680_history_data"
-history_data = []
+try:
+    from pyodide.ffi import create_proxy
+except Exception:
+    create_proxy = None
 
-def load_history_from_storage():
+# 使用 IndexedDB 保存历史记录，storage.js 提供 localStorage 降级与旧数据迁移
+COMPARE_SELECTION_KEY = "gb2680_compare_selection"
+history_data = []
+compare_selection = []
+_event_proxies = []
+_calc_in_progress = False
+
+async def load_history_from_storage():
     global history_data
     try:
-        stored = window.localStorage.getItem(LOCAL_STORAGE_KEY)
-        if stored:
-            history_data = json.loads(stored)
-    except:
+        loaded = await window.gb2680Storage.loadHistory()
+
+        # 如果是 PyProxy（来自 pyodide），先转为 Python 原生对象
+        if hasattr(loaded, "to_py"):
+            py_obj = loaded.to_py()
+            # py_obj 可能是 list / str / None
+            if isinstance(py_obj, list):
+                history_data = py_obj
+            elif isinstance(py_obj, str):
+                try:
+                    history_data = json.loads(py_obj)
+                except Exception:
+                    history_data = []
+            else:
+                history_data = []
+        else:
+            # 不是 PyProxy，可能是直接的 JS 值已被转换为 Python 类型（str/list/None）
+            if isinstance(loaded, list):
+                history_data = loaded
+            elif isinstance(loaded, str):
+                try:
+                    history_data = json.loads(loaded)
+                except Exception:
+                    history_data = []
+            else:
+                history_data = []
+
+        if not isinstance(history_data, list):
+            history_data = []
+    except Exception:
         history_data = []
 
-def save_history_to_storage():
+async def save_history_to_storage():
     try:
-        window.localStorage.setItem(LOCAL_STORAGE_KEY, json.dumps(history_data))
+        window.gb2680Storage.saveHistory(history_data)
     except Exception as e:
-        print("Failed to save history to localStorage:", e)
+        print("Failed to save history to IndexedDB:", e)
 
 def clear_history_click(event):
     if window.confirm("确定要清空所有历史计算记录吗？"):
         global history_data
         history_data = []
-        save_history_to_storage()
+        compare_selection.clear()
+        window.localStorage.removeItem(COMPARE_SELECTION_KEY)
+        window.gb2680Storage.clearHistory()
         render_history()
 
 def js_delete_history(idx):
-    global history_data
+    global history_data, compare_selection
     try:
-        history_data.pop(int(idx))
-        save_history_to_storage()
+        idx_int = int(idx)
+        history_data.pop(idx_int)
+        if idx_int in compare_selection:
+            compare_selection.remove(idx_int)
+        compare_selection = [i - 1 if i > idx_int else i for i in compare_selection]
+        window.localStorage.setItem(COMPARE_SELECTION_KEY, json.dumps(compare_selection))
+        window.gb2680Storage.saveHistory(history_data)
         render_history()
     except Exception as e:
         print("Delete error:", e)
@@ -41,12 +82,67 @@ def js_delete_history(idx):
 # 挂载到 window 供 js 调用
 window.js_delete_history = js_delete_history
 
+def update_right_panel(res):
+    try:
+        document.getElementById("results_wrapper").style.display = "block"
+        document.getElementById("empty_state").style.display = "none"
+        document.getElementById("hero_vlt").innerText = f"{res.get('VLT', 0):.1f}"
+        document.getElementById("hero_uvb").innerText = f"{res.get('UVB', 0):.1f}"
+        document.getElementById("hero_tser").innerText = f"{res.get('TSER', 0):.1f}"
+        
+        vlr_i = res.get('VLR_I')
+        if vlr_i is not None:
+            document.getElementById("hero_vlr").innerText = f"{vlr_i:.1f}"
+            document.getElementById("hero_vlr_box").style.display = "block"
+            document.getElementById("res_vlr_i").innerText = f"{vlr_i:.2f} %"
+            document.getElementById("row_vlr_i").className = ""
+        else:
+            document.getElementById("hero_vlr_box").style.display = "none"
+            document.getElementById("res_vlr_i").innerText = "未提供数据"
+            document.getElementById("row_vlr_i").className = "text-secondary opacity-50"
+        
+        document.getElementById("res_vlt").innerText = f"{res.get('VLT', 0):.2f}"
+        document.getElementById("res_vlr_e").innerText = f"{res.get('VLR_E', 0):.2f}"
+        document.getElementById("res_uvt").innerText = f"{res.get('UVT', 0):.2f}"
+        document.getElementById("res_te").innerText = f"{res.get('TE', 0):.2f}"
+        document.getElementById("res_re").innerText = f"{res.get('RE', 0):.2f}"
+        document.getElementById("res_g").innerText = f"{res.get('G', 0):.2f}"
+        document.getElementById("res_sc").innerText = f"{res.get('SC', 0):.3f}"
+        
+        if res.get("spectra"):
+            chart_data = {
+                "fileIdent": res.get("name", "Unknown"),
+                "spectra": res["spectra"]
+            }
+            try:
+                window.gb2680Storage.saveChart(window.JSON.parse(json.dumps(chart_data)))
+            except Exception as se:
+                print("saveChart error:", se)
+            document.getElementById("show_chart_link").style.display = "block"
+        else:
+            document.getElementById("show_chart_link").style.display = "none"
+            
+        if hasattr(window, 'MathJax') and hasattr(window.MathJax, 'typesetPromise'):
+            window.MathJax.typesetPromise()
+    except Exception as e:
+        print("Update right panel error:", e)
+        window.alert("旧版历史数据格式不兼容，请先清空历史记录后再试！")
+
+def js_view_history(idx):
+    try:
+        item = history_data[int(idx)]
+        update_right_panel(item)
+    except Exception as e:
+        print("View error:", e)
+
+window.js_view_history = js_view_history
+
 def on_export_click(event):
     if not history_data:
         window.alert("暂无历史数据可导出！")
         return
         
-    csv_content = "Filename,VLT(%),Tser(%),UV Block(%),VLR(%)\n"
+    csv_content = "Filename,VLT(%),TSER(%),UV Block(%),VLR(%)\n"
     for item in history_data:
         vlr_str = f"{item['VLR_I']:.1f}" if item['VLR_I'] is not None else "N/A"
         csv_content += f"{item['name']},{item['VLT']:.1f},{item['TSER']:.1f},{item['UVB']:.1f},{vlr_str}\n"
@@ -59,34 +155,211 @@ def on_export_click(event):
     a.click()
     a.remove()
 
+def update_compare_controls():
+    button = document.getElementById("compare_btn")
+    counter = document.getElementById("compare_count")
+    if button:
+        button.disabled = len(compare_selection) == 0
+    if counter:
+        counter.innerText = f"{len(compare_selection)}/5"
+
+def on_compare_selection_change(idx, checked):
+    index = int(idx)
+    if checked and index not in compare_selection:
+        if len(compare_selection) >= 5:
+            window.alert("最多选择 5 个测试样品进行对比。")
+            checkbox = document.getElementById(f"compare_check_{index}")
+            if checkbox:
+                checkbox.checked = False
+            return
+        compare_selection.append(index)
+    elif not checked and index in compare_selection:
+        compare_selection.remove(index)
+    compare_selection.sort()
+    window.localStorage.setItem(COMPARE_SELECTION_KEY, json.dumps(compare_selection))
+    update_compare_controls()
+
+window.js_compare_selection_change = on_compare_selection_change
+
+def on_compare_click(event):
+    if not compare_selection:
+        window.alert("请至少选择一个测试样品。")
+        return
+    window.open("compare.html", "_blank")
+
 def render_history():
     tbody = document.getElementById("history_tbody")
     if not history_data:
-        tbody.innerHTML = '<tr><td colspan="6" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>'
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted py-3">（计算结果将自动保存在这里）</td></tr>'
+        update_compare_controls()
         return
-        
-    html = ""
-    for i, item in enumerate(history_data):
-        vlr = f"{item['VLR_I']:.1f}" if item['VLR_I'] is not None else "-"
-        name = item['name']
-        short_name = name if len(name) <= 12 else name[:10] + "..."
-        html += f"<tr><td class='text-start' title='{name}'>{short_name}</td><td>{item['VLT']:.1f}</td><td>{item['TSER']:.1f}</td><td>{item['UVB']:.1f}</td><td>{vlr}</td><td><button class='btn btn-sm btn-outline-danger py-0 px-1' onclick='window.js_delete_history({i})' title='删除'>&times;</button></td></tr>"
-    tbody.innerHTML = html
+
+    try:
+        html = ""
+        for i, item in enumerate(history_data):
+            if not isinstance(item, dict):
+                continue
+
+            vlr_i = item.get('VLR_I')
+            vlr = f"{vlr_i:.1f}" if isinstance(vlr_i, (int, float)) else "-"
+
+            name = str(item.get('name', f'记录{i + 1}'))
+            short_name = name if len(name) <= 12 else name[:10] + "..."
+
+            vlt = float(item.get('VLT', 0) or 0)
+            tser = float(item.get('TSER', 0) or 0)
+            uvb = float(item.get('UVB', 0) or 0)
+
+            is_checked = "checked" if i in compare_selection else ""
+            html += (
+                f"<tr style='cursor: pointer;'>"
+                f"<td onclick='event.stopPropagation();'><input class='form-check-input' type='checkbox' id='compare_check_{i}' onchange='window.js_compare_selection_change({i}, this.checked)' {is_checked}></td>"
+                f"<td class='text-start text-primary fw-bold' onclick='window.js_view_history({i})' title='点击查看详情: {name}'>{short_name}</td>"
+                f"<td onclick='window.js_view_history({i})'>{vlt:.1f}</td>"
+                f"<td onclick='window.js_view_history({i})'>{tser:.1f}</td>"
+                f"<td onclick='window.js_view_history({i})'>{uvb:.1f}</td>"
+                f"<td onclick='window.js_view_history({i})'>{vlr}</td>"
+                f"<td><button class='btn btn-sm btn-outline-danger py-0 px-1' onclick='window.js_delete_history({i}); event.stopPropagation();' title='删除'>&times;</button></td>"
+                f"</tr>"
+            )
+
+        tbody.innerHTML = html if html else '<tr><td colspan="7" class="text-muted py-3">（暂无有效历史数据）</td></tr>'
+        update_compare_controls()
+    except Exception as e:
+        print("Render history error:", e)
+        tbody.innerHTML = '<tr><td colspan="7" class="text-warning py-3">历史数据异常，建议清空后重试</td></tr>'
+
+
+def bind_click_handler_by_id(element_id, handler):
+    el = document.getElementById(element_id)
+    if not el:
+        return
+    try:
+        if create_proxy is not None:
+            proxy = create_proxy(handler)
+            _event_proxies.append(proxy)
+            el.addEventListener("click", proxy)
+        else:
+            el.onclick = handler
+    except Exception as e:
+        print(f"Bind click error for #{element_id}:", e)
+
+
+def bind_click_handler_by_selector(selector, handler):
+    el = document.querySelector(selector)
+    if not el:
+        return
+    try:
+        if create_proxy is not None:
+            proxy = create_proxy(handler)
+            _event_proxies.append(proxy)
+            el.addEventListener("click", proxy)
+        else:
+            el.onclick = handler
+    except Exception as e:
+        print(f"Bind click error for selector {selector}:", e)
+
+def get_file_count(file_input):
+    if not file_input:
+        return 0
+    try:
+        files = file_input.files
+        if files is None:
+            return 0
+        if hasattr(files, "length"):
+            return int(files.length)
+        return len(files)
+    except Exception as e:
+        print("get_file_count exception:", e)
+        return 0
+
+def update_file_status(event):
+    file_input = event.target
+    status_id = {
+        "trans_csv": "trans_status",
+        "refl_csv": "refl_status",
+        "in_refl_csv": "in_refl_status"
+    }.get(file_input.id)
+    if not status_id:
+        return
+    status = document.getElementById(status_id)
+    if get_file_count(file_input) > 0:
+        selected_file = file_input.files.item(0)
+        status.innerText = f"已选择：{selected_file.name}"
+        status.className = "file-status ready"
+    elif file_input.id == "in_refl_csv":
+        status.innerText = "未提供时将跳过室内反射率"
+        status.className = "file-status"
+    else:
+        status.innerText = "尚未选择文件"
+        status.className = "file-status"
+
+def bind_change_handler(element_id, handler):
+    el = document.getElementById(element_id)
+    if not el:
+        return
+    try:
+        proxy = create_proxy(handler) if create_proxy is not None else handler
+        if create_proxy is not None:
+            _event_proxies.append(proxy)
+        el.addEventListener("change", proxy)
+    except Exception as e:
+        print(f"Bind change error for #{element_id}:", e)
+
+
+def init_event_handlers():
+    bind_click_handler_by_id("export_btn", on_export_click)
+    bind_click_handler_by_id("compare_btn", on_compare_click)
+    bind_click_handler_by_selector("button[py-click='clear_history_click']", clear_history_click)
+    bind_change_handler("trans_csv", update_file_status)
+    bind_change_handler("refl_csv", update_file_status)
+    bind_change_handler("in_refl_csv", update_file_status)
 
 def on_calculate_click(event):
+    global _calc_in_progress
+
+    if _calc_in_progress:
+        return
+
     document.getElementById("results_wrapper").style.display = "none"
     document.getElementById("error_msg").innerHTML = ""
+    document.getElementById("error_msg").style.display = "none"
+    document.getElementById("calculation_status").innerText = ""
     document.getElementById("hero_vlr_box").style.display = "none"
-    
+
     trans_file_input = document.getElementById("trans_csv")
     refl_file_input = document.getElementById("refl_csv")
     in_refl_file_input = document.getElementById("in_refl_csv")
-    
-    if len(trans_file_input.files) == 0 or len(refl_file_input.files) == 0:
-        document.getElementById("error_msg").innerHTML = "错误: 必须上传 透光率(T%) 和 室外反射率(R%) CSV 文件。"
+
+    try:
+        trans_count = get_file_count(trans_file_input)
+        refl_count = get_file_count(refl_file_input)
+        
+        missing = []
+        if trans_count == 0:
+            missing.append("透光率 (T%)")
+        if refl_count == 0:
+            missing.append("外反射率 (R%)")
+            
+        if missing:
+            document.getElementById("error_msg").innerHTML = "计算需要必需项目，还需上传：" + " 和 ".join(missing) + " CSV 文件。"
+            document.getElementById("error_msg").style.display = "block"
+            return
+    except Exception as e:
+        document.getElementById("error_msg").innerHTML = f"文件读取异常: {str(e)}"
+        document.getElementById("error_msg").style.display = "block"
         return
 
+    _calc_in_progress = True
+    calc_btn = document.getElementById("calc_btn")
+    if calc_btn:
+        calc_btn.disabled = True
+    document.getElementById("calc_btn_label").innerText = "正在计算"
+    document.getElementById("calc_spinner").style.display = "inline-block"
+    document.getElementById("calculation_status").innerText = "正在读取光谱数据，请稍候..."
+
     async def process_files():
+        global _calc_in_progress
         try:
             trans_file = trans_file_input.files.item(0)
             refl_file = refl_file_input.files.item(0)
@@ -95,72 +368,77 @@ def on_calculate_click(event):
             refl_text = await refl_file.text()
             
             in_refl_text = None
-            if len(in_refl_file_input.files) > 0:
+            if get_file_count(in_refl_file_input) > 0:
                 in_refl_file = in_refl_file_input.files.item(0)
                 in_refl_text = await in_refl_file.text()
             
             # 使用算法核心模块处理
             res = calculate_params(trans_text, refl_text, in_refl_text)
+            document.getElementById("calculation_status").innerText = "计算完成，结果已更新。"
             
-            # 保存到历史
-            file_ident = trans_file.name.replace(".csv", "").replace(".样品", "").replace(".原始数据", "").replace("-trans", "").replace("-refl-front", "")
-            history_data.insert(0, {
-                "name": file_ident,
-                "VLT": res['VLT'],
-                "TSER": res['TSER'],
-                "UVB": res['UVB'],
-                "VLR_I": res['VLR_I']
-            })
-            if len(history_data) > 100:
+            # 保存到历史，直接存入 res 字典(包含了所有指标与 spectra 光谱阵列)，用于随时切换浏览
+            trans_name = str(trans_file.name)
+            base_name = trans_name.rsplit(".", 1)[0]
+            file_ident = (base_name.split("-", 1)[0].strip() or base_name)
+            res["name"] = file_ident
+            history_data.insert(0, res)
+            
+            # 由于带有 spectra, 不宜保存过多，将 localStorage 缓存深度缩减到 30 条以免越界
+            if len(history_data) > 30:
                 history_data.pop()
             
-            save_history_to_storage()
+            try:
+                window.gb2680Storage.saveHistory(window.JSON.parse(json.dumps(history_data)))
+            except Exception as se:
+                print("saveHistory error:", se)
             render_history()
             
-            # Layer 1
-            document.getElementById("hero_vlt").innerText = f"{res['VLT']:.1f}"
-            document.getElementById("hero_uvb").innerText = f"{res['UVB']:.1f}"
-            document.getElementById("hero_tser").innerText = f"{res['TSER']:.1f}"
-            
-            if res['VLR_I'] is not None:
-                document.getElementById("hero_vlr").innerText = f"{res['VLR_I']:.1f}"
-                document.getElementById("hero_vlr_box").style.display = "block"
-                document.getElementById("res_vlr_i").innerText = f"{res['VLR_I']:.2f} %"
-                document.getElementById("row_vlr_i").className = ""
-            else:
-                document.getElementById("hero_vlr_box").style.display = "none"
-                document.getElementById("res_vlr_i").innerText = "未提供数据"
-                document.getElementById("row_vlr_i").className = "text-secondary opacity-50"
-            
-            # Layer 2
-            document.getElementById("res_vlt").innerText = f"{res['VLT']:.2f}"
-            document.getElementById("res_vlr_e").innerText = f"{res['VLR_E']:.2f}"
-            document.getElementById("res_uvt").innerText = f"{res['UVT']:.2f}"
-            document.getElementById("res_te").innerText = f"{res['TE']:.2f}"
-            document.getElementById("res_re").innerText = f"{res['RE']:.2f}"
-            document.getElementById("res_g").innerText = f"{res['G']:.2f}"
-            document.getElementById("res_sc").innerText = f"{res['SC']:.3f}"
-            
-            document.getElementById("results_wrapper").style.display = "block"
-            
-                        # 保存图表数据以便在新标签页中显示
-            if res.get("spectra"):
-                import json
-                chart_data = {
-                    "fileIdent": file_ident,
-                    "spectra": res["spectra"]
-                }
-                window.localStorage.setItem("current_chart_data", json.dumps(chart_data))
-                document.getElementById("show_chart_link").style.display = "block"
-            
-            if hasattr(window, 'MathJax') and hasattr(window.MathJax, 'typesetPromise'):
-                window.MathJax.typesetPromise()
+            # 调用新方法集中刷新右侧面板
+            update_right_panel(res)
             
         except Exception as e:
-            document.getElementById("error_msg").innerHTML = f"计算出错: {str(e)}"
+            error_msg = f"计算出错: {str(e)}"
+            print("Error in process_files:", error_msg)
+            document.getElementById("error_msg").innerHTML = error_msg
+            document.getElementById("error_msg").style.display = "block"
+            document.getElementById("calculation_status").innerText = "计算未完成"
+        finally:
+            _calc_in_progress = False
+            if calc_btn:
+                calc_btn.disabled = False
+            document.getElementById("calc_btn_label").innerText = "开始计算"
+            document.getElementById("calc_spinner").style.display = "none"
             
     asyncio.ensure_future(process_files())
 
-load_history_from_storage()
-render_history()
+async def initialize_page():
+    global compare_selection
+    await load_history_from_storage()
+    try:
+        stored_selection = window.localStorage.getItem(COMPARE_SELECTION_KEY)
+        if stored_selection:
+            compare_selection = [
+                int(index) for index in json.loads(stored_selection)
+                if 0 <= int(index) < len(history_data)
+            ][:5]
+    except Exception:
+        compare_selection = []
+    render_history()
+    init_event_handlers()
 
+    # 标记 PyScript 环境已就绪
+    window.py_ready = True
+    calc_btn = document.getElementById("calc_btn")
+    if calc_btn:
+        calc_btn.disabled = False
+    calc_status = document.getElementById("calculation_status")
+    if calc_status and calc_status.innerText.startswith("正在加载"):
+        calc_status.innerText = ""
+
+# 暴露给全局 window 确保各种调用方式兼容
+window.on_calculate_click = on_calculate_click
+window.clear_history_click = clear_history_click
+window.on_export_click = on_export_click
+window.on_compare_click = on_compare_click
+
+asyncio.ensure_future(initialize_page())
