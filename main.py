@@ -66,9 +66,14 @@ def clear_history_click(event):
         render_history()
 
 def js_delete_history(idx):
-    global history_data
+    global history_data, compare_selection
     try:
-        history_data.pop(int(idx))
+        idx_int = int(idx)
+        history_data.pop(idx_int)
+        if idx_int in compare_selection:
+            compare_selection.remove(idx_int)
+        compare_selection = [i - 1 if i > idx_int else i for i in compare_selection]
+        window.localStorage.setItem(COMPARE_SELECTION_KEY, json.dumps(compare_selection))
         window.gb2680Storage.saveHistory(history_data)
         render_history()
     except Exception as e:
@@ -109,7 +114,10 @@ def update_right_panel(res):
                 "fileIdent": res.get("name", "Unknown"),
                 "spectra": res["spectra"]
             }
-            window.gb2680Storage.saveChart(chart_data)
+            try:
+                window.gb2680Storage.saveChart(window.JSON.parse(json.dumps(chart_data)))
+            except Exception as se:
+                print("saveChart error:", se)
             document.getElementById("show_chart_link").style.display = "block"
         else:
             document.getElementById("show_chart_link").style.display = "none"
@@ -202,9 +210,10 @@ def render_history():
             tser = float(item.get('TSER', 0) or 0)
             uvb = float(item.get('UVB', 0) or 0)
 
+            is_checked = "checked" if i in compare_selection else ""
             html += (
                 f"<tr style='cursor: pointer;'>"
-                f"<td onclick='event.stopPropagation();'><input class='form-check-input' type='checkbox' id='compare_check_{i}' onchange='window.js_compare_selection_change({i}, this.checked)' {'[...]}"  # placeholder kept intentionally
+                f"<td onclick='event.stopPropagation();'><input class='form-check-input' type='checkbox' id='compare_check_{i}' onchange='window.js_compare_selection_change({i}, this.checked)' {is_checked}></td>"
                 f"<td class='text-start text-primary fw-bold' onclick='window.js_view_history({i})' title='点击查看详情: {name}'>{short_name}</td>"
                 f"<td onclick='window.js_view_history({i})'>{vlt:.1f}</td>"
                 f"<td onclick='window.js_view_history({i})'>{tser:.1f}</td>"
@@ -251,13 +260,18 @@ def bind_click_handler_by_selector(selector, handler):
         print(f"Bind click error for selector {selector}:", e)
 
 def get_file_count(file_input):
+    if not file_input:
+        return 0
     try:
-        return int(file_input.files.length)
-    except Exception:
-        try:
-            return len(file_input.files)
-        except Exception:
+        files = file_input.files
+        if files is None:
             return 0
+        if hasattr(files, "length"):
+            return int(files.length)
+        return len(files)
+    except Exception as e:
+        print("get_file_count exception:", e)
+        return 0
 
 def update_file_status(event):
     file_input = event.target
@@ -294,8 +308,6 @@ def bind_change_handler(element_id, handler):
 
 
 def init_event_handlers():
-    # Keep py-click attributes, and bind explicitly as a fallback to avoid silent non-response.
-    bind_click_handler_by_id("calc_btn", on_calculate_click)
     bind_click_handler_by_id("export_btn", on_export_click)
     bind_click_handler_by_id("compare_btn", on_compare_click)
     bind_click_handler_by_selector("button[py-click='clear_history_click']", clear_history_click)
@@ -320,8 +332,17 @@ def on_calculate_click(event):
     in_refl_file_input = document.getElementById("in_refl_csv")
 
     try:
-        if get_file_count(trans_file_input) == 0 or get_file_count(refl_file_input) == 0:
-            document.getElementById("error_msg").innerHTML = "请先上传透光率 (T%) 和外反射率 (R%) CSV 文件。"
+        trans_count = get_file_count(trans_file_input)
+        refl_count = get_file_count(refl_file_input)
+        
+        missing = []
+        if trans_count == 0:
+            missing.append("透光率 (T%)")
+        if refl_count == 0:
+            missing.append("外反射率 (R%)")
+            
+        if missing:
+            document.getElementById("error_msg").innerHTML = "计算需要必需项目，还需上传：" + " 和 ".join(missing) + " CSV 文件。"
             document.getElementById("error_msg").style.display = "block"
             return
     except Exception as e:
@@ -366,7 +387,10 @@ def on_calculate_click(event):
             if len(history_data) > 30:
                 history_data.pop()
             
-            window.gb2680Storage.saveHistory(history_data)
+            try:
+                window.gb2680Storage.saveHistory(window.JSON.parse(json.dumps(history_data)))
+            except Exception as se:
+                print("saveHistory error:", se)
             render_history()
             
             # 调用新方法集中刷新右侧面板
@@ -401,5 +425,20 @@ async def initialize_page():
         compare_selection = []
     render_history()
     init_event_handlers()
+
+    # 标记 PyScript 环境已就绪
+    window.py_ready = True
+    calc_btn = document.getElementById("calc_btn")
+    if calc_btn:
+        calc_btn.disabled = False
+    calc_status = document.getElementById("calculation_status")
+    if calc_status and calc_status.innerText.startswith("正在加载"):
+        calc_status.innerText = ""
+
+# 暴露给全局 window 确保各种调用方式兼容
+window.on_calculate_click = on_calculate_click
+window.clear_history_click = clear_history_click
+window.on_export_click = on_export_click
+window.on_compare_click = on_compare_click
 
 asyncio.ensure_future(initialize_page())

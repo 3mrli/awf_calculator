@@ -44,7 +44,7 @@
                 <p class="text-secondary mt-2 mb-0" style="font-size: .9rem; line-height: 1.6;">测试样品对比分析 · GB/T 2680 标准指标与太阳能透过谱图</p>
             </div>
             <a class="hero-logo" href="https://skydrive3m.sharepoint.com/SitePages/Home.aspx" target="_blank" rel="noopener noreferrer" title="打开 3M SharePoint 主页">
-                <img src="logo.svg" alt="3M Logo">
+                <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3My4wMSA0OSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOnJlZDt9PC9zdHlsZT48L2RlZnM+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNTAuMzgsMTIuNTJsLTMuNDUsMTQtMy40Ni0xNGgtMTB2NS4xN0MzMi4yNywxMy4xNiwyNy44MiwxMiwyMy44NSwxMiwxOSwxMS45LDEzLjYyLDE0LDEzLjQ0LDIwLjQxaDYuN2EzLjIsMy4yLDAsMCwxLDMuNDUtM2MyLjA1LDAsMywuODYsMy4wNSwyLjIyLS4wNywxLjE5LS43NywyLTMsMkgyMS4zNXY0LjY1aDJjMS4xNiwwLDIuNzguNjQsMi44NCwyLjI5LjA4LDItMS4yOSwyLjg1LTMsMi44Ni0zLS4xMS0zLjc5LTIuNDMtMy43OS00LjQyaC03YzAsMS4zNCwwLDEwLjA5LDEwLjksMTAsNS4yMy4wNSw5LTIuMTUsMTAuMS01LjE4VjM2LjVoNi43MlYyMS4zN0w0My45MywzNi41aDZsMy43My0xNS4xMVYzNi41Mmg2Ljg1di0yNFptLTE2Ljg3LDE4YTUuMyw1LjMsMCwwLDAtMi43NC0yLjc5LDQuNjMsNC42MywwLDAsMCwyLjc0LTMuMloiLz48L3N2Zz4=" alt="3M Logo" style="height: 50px; width: auto;">
             </a>
         </div>
     </header>
@@ -124,7 +124,31 @@
                     if (state.direct) traces.push({ x: sample.spectra.wl, y: sample.spectra.direct, name: `${sample.name} · 直接透过（虚线）`, line: { color: colors[index], width: 2, dash: "dash" } });
                     if (state.total) traces.push({ x: sample.spectra.wl, y: sample.spectra.total, name: `${sample.name} · 总透过（实线）`, line: { color: colors[index], width: 2.4 } });
                 });
-                const layout = { title: { text: "太阳能光谱分布 (300 - 2500nm)", font: { size: 22 } }, xaxis: { title: "波长 Wavelength (nm)", dtick: 500, showgrid: true, gridcolor: "#dfe5e9" }, yaxis: { title: "辐照度 Irradiance (W/m²)", showgrid: true, gridcolor: "#dfe5e9" }, hovermode: "x unified", legend: { title: { text: "样品 · 曲线类型" }, orientation: "h", y: -0.18 }, margin: { l: 75, r: 30, t: 70, b: 100 } };
+                const layout = {
+                    title: { text: "太阳能光谱分布 (300 - 2500nm)", font: { size: 22 } },
+                    xaxis: {
+                        title: { text: "波长 Wavelength (nm)", font: { size: 16 } },
+                        dtick: 500,
+                        minor: {
+                            dtick: 100,
+                            showgrid: true,
+                            gridcolor: "#e5e5e5"
+                        },
+                        showgrid: true,
+                        gridcolor: "#cccccc",
+                        zeroline: false
+                    },
+                    yaxis: {
+                        title: { text: "辐照度 Irradiance (W/m²)", font: { size: 16 } },
+                        showgrid: true,
+                        gridcolor: "#cccccc",
+                        zeroline: true,
+                        zerolinecolor: "#999999"
+                    },
+                    hovermode: "x unified",
+                    legend: { title: { text: "样品 · 曲线类型" }, orientation: "h", y: -0.18 },
+                    margin: { l: 75, r: 30, t: 70, b: 100 }
+                };
                 Plotly.react("comparison_chart", traces, layout, { responsive: true, displayModeBar: true, scrollZoom: true });
             }
 
