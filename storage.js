@@ -50,6 +50,17 @@
         });
     }
 
+    function cleanPyProxy(data) {
+        if (!data) return data;
+        if (typeof data === "object" && typeof data.to_py === "function") {
+            try { return data.to_py(); } catch (e) {}
+        }
+        if (typeof data === "string") {
+            try { return JSON.parse(data); } catch (e) { return data; }
+        }
+        return data;
+    }
+
     window.gb2680Storage = {
         loadHistory: function () {
             return migrateLegacyData().catch(() => {
@@ -57,8 +68,9 @@
             });
         },
         saveHistory: function (history) {
-            return write(HISTORY_KEY, history).catch(() => {
-                window.localStorage.setItem(LEGACY_HISTORY_KEY, JSON.stringify(history));
+            const clean = cleanPyProxy(history);
+            return write(HISTORY_KEY, clean).catch(() => {
+                try { window.localStorage.setItem(LEGACY_HISTORY_KEY, JSON.stringify(clean)); } catch(e) {}
             });
         },
         clearHistory: function () {
@@ -67,19 +79,29 @@
             });
         },
         loadChart: function () {
+            let legacyChart = null;
+            try {
+                const stored = window.localStorage.getItem(LEGACY_CHART_KEY);
+                if (stored) legacyChart = JSON.parse(stored);
+            } catch (error) { legacyChart = null; }
+
+            if (legacyChart && legacyChart.spectra && Array.isArray(legacyChart.spectra.wl) && legacyChart.spectra.wl.length > 0) {
+                return Promise.resolve(legacyChart);
+            }
+
             return read(CHART_KEY).then(chart => {
-                if (chart !== undefined) return chart;
-                let legacyChart = null;
-                try { legacyChart = JSON.parse(window.localStorage.getItem(LEGACY_CHART_KEY) || "null"); } catch (error) { legacyChart = null; }
-                return write(CHART_KEY, legacyChart).then(() => legacyChart);
-            }).catch(() => {
-                try { return JSON.parse(window.localStorage.getItem(LEGACY_CHART_KEY) || "null"); } catch (error) { return null; }
-            });
+                if (chart && chart.spectra && Array.isArray(chart.spectra.wl) && chart.spectra.wl.length > 0) {
+                    return chart;
+                }
+                return legacyChart;
+            }).catch(() => legacyChart);
         },
         saveChart: function (chart) {
-            return write(CHART_KEY, chart).catch(() => {
-                window.localStorage.setItem(LEGACY_CHART_KEY, JSON.stringify(chart));
-            });
+            const clean = cleanPyProxy(chart);
+            try {
+                window.localStorage.setItem(LEGACY_CHART_KEY, JSON.stringify(clean));
+            } catch (e) {}
+            return write(CHART_KEY, clean).catch(() => {});
         }
     };
 })();

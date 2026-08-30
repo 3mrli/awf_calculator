@@ -66,24 +66,28 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
-            const chartData = await window.gb2680Storage.loadChart();
-            const rawData = chartData ? JSON.stringify(chartData) : null;
-            if (!rawData) {
+            let chartData = null;
+            try {
+                chartData = await window.gb2680Storage.loadChart();
+            } catch (e) {
+                console.error("loadChart failed:", e);
+            }
+            
+            if (!chartData) {
                 document.getElementById('no_data').style.display = 'block';
                 return;
             }
             
-            let data = null;
+            let data = chartData;
             try {
-                // 兼容多种存储格式：有时数据被双重序列化（字符串内含 JSON）
-                data = JSON.parse(rawData);
-                // 如果解析后仍是字符串，说明存在二次序列化，再解析一次
                 if (typeof data === 'string') {
-                    try { data = JSON.parse(data); } catch (e2) { /* leave as-is */ }
+                    data = JSON.parse(data);
+                }
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
                 }
             } catch(e) {
-                document.getElementById('no_data').style.display = 'block';
-                return;
+                console.error("JSON parse error:", e);
             }
 
             // 如果没有有效的谱图对象或波长数组，显示无数据提示并退出
@@ -152,7 +156,7 @@
 
             const layout = {
                 title: {
-                    text: '<b>太阳能光��分布 (300 - 2500nm) - ' + fileName + '</b>',
+                    text: '<b>太阳能光谱分布 (300 - 2500nm) - ' + fileName + '</b>',
                     font: { size: 24 }
                 },
                 xaxis: {
