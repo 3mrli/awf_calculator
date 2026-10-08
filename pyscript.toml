@@ -1,4 +1,4 @@
-packages = ["pandas", "numpy"]
+packages = []
 
 [[fetch]]
 files = ["./main.py", "./calculator.py", "./constants.py", "./CIE241_H1_5nm.csv"]
