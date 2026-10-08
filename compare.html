@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>样品对比 - Window Film 计算器</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="./vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <script src="./vendor/plotly/plotly-2.27.0.min.js"></script>
     <script src="./storage.js"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         :root { --ink: #18324a; --muted: #657789; --canvas: #f3f6f8; --line: #d9e2e9; }
         body { margin: 0; background: var(--canvas); color: var(--ink); font-family: "Aptos", "Segoe UI", sans-serif; }
@@ -81,12 +80,12 @@
             const selectionKey = "gb2680_compare_selection";
             const colors = ["#0057b8", "#e4572e", "#008c95", "#7656a6", "#4f8b57"];
             const metrics = [
-                ["可见光透射比", "Visible Light Transmittance (VLT)", "\\tau_v", "VLT", "%"],
-                ["可见光-外反射比", "Visible Light External Reflectance", "\\rho_{v,e}", "VLR_E", "%"],
-                ["可见光-内反射比", "Visible Light Internal Reflectance", "\\rho_{v,i}", "VLR_I", "%"],
-                ["紫外线透射比", "Ultraviolet Transmittance (UVT)", "\\tau_{uv}", "UVT", "%"],
-                ["太阳光直接透射比", "Direct Solar Transmittance (DET)", "\\tau_e", "TE", "%"],
-                ["太阳光直接反射比", "Direct Solar Reflectance (DER)", "\\rho_e", "RE", "%"],
+                ["可见光透射比", "Visible Light Transmittance (VLT)", "τᵥ", "VLT", "%"],
+                ["可见光-外反射比", "Visible Light External Reflectance", "ρᵥ,ₑ", "VLR_E", "%"],
+                ["可见光-内反射比", "Visible Light Internal Reflectance", "ρᵥ,ᵢ", "VLR_I", "%"],
+                ["紫外线透射比", "Ultraviolet Transmittance (UVT)", "τᵤᵥ", "UVT", "%"],
+                ["太阳光直接透射比", "Direct Solar Transmittance (DET)", "τₑ", "TE", "%"],
+                ["太阳光直接反射比", "Direct Solar Reflectance (DER)", "ρₑ", "RE", "%"],
                 ["太阳能总透射比", "Solar Heat Gain Coefficient (g-value)", "g", "G", "%"],
                 ["总隔热率", "Total Solar Energy Rejection (TSER)", "TSER", "TSER", "%"],
                 ["遮阳系数", "Shading Coefficient", "SC", "SC", ""]
@@ -104,7 +103,7 @@
                 metrics.forEach(([cn, en, symbol, key, unit]) => {
                     const row = document.createElement("tr");
                     const name = document.createElement("td"); name.className = "metric-name"; name.innerHTML = `${cn}<br><small class="text-muted">${en}</small>`; row.appendChild(name);
-                    const symbolCell = document.createElement("td"); symbolCell.className = "metric-symbol"; symbolCell.innerHTML = `\\(${symbol}\\)`; row.appendChild(symbolCell);
+                    const symbolCell = document.createElement("td"); symbolCell.className = "metric-symbol"; symbolCell.textContent = symbol; row.appendChild(symbolCell);
                     samples.forEach(sample => row.appendChild(textCell(`${formatValue(sample[key], key)} ${unit}`.trim(), "text-center fw-bold")));
                     body.appendChild(row);
                 });
@@ -181,7 +180,6 @@
             if (!samples.length) { document.getElementById("empty_state").style.display = "block"; return; }
             document.getElementById("comparison_content").style.display = "block";
             buildTable();
-            if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise();
             buildControls(); renderChart(); drawHeader();
         })();
     </script>

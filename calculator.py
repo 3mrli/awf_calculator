@@ -1,36 +1,43 @@
-﻿import pandas as pd
-import numpy as np
+﻿import csv
+from bisect import bisect_left
+from io import StringIO
+
 from constants import UV_WEIGHTS, UV_SUM, VIS_WEIGHTS, VIS_SUM, SOLAR_WEIGHTS, SOLAR_SUM, QC_HE, QC_HI
 
 def parse_csv_content(csv_string):
     try:
-        from io import StringIO
         lines = [line.strip() for line in csv_string.strip().splitlines() if line.strip() and not line.strip().startswith('#')]
-        cleaned_csv = "\n".join(lines)
-        df = pd.read_csv(StringIO(cleaned_csv), skipinitialspace=True)
-        df.columns = [str(c).strip().lower() for c in df.columns]
+        rows = list(csv.reader(StringIO("\n".join(lines)), skipinitialspace=True))
+        if not rows:
+            raise ValueError("CSV 文件为空。")
+
+        headers = [str(value).strip().lower() for value in rows[0]]
+        data_rows = [row for row in rows[1:] if len(row) >= len(headers)]
         
         # 识别波长列
-        wl_candidates = [c for c in df.columns if 'nm' in c or 'wave' in c or 'lambda' in c or 'wl' in c]
-        wl_col = wl_candidates[0] if wl_candidates else df.columns[0]
+        wl_candidates = [i for i, name in enumerate(headers) if 'nm' in name or 'wave' in name or 'lambda' in name or 'wl' in name]
+        wl_index = wl_candidates[0] if wl_candidates else 0
         
         # 识别数值列（必须排除波长列）
-        other_cols = [c for c in df.columns if c != wl_col]
-        if not other_cols:
+        other_indices = [i for i in range(len(headers)) if i != wl_index]
+        if not other_indices:
             raise ValueError("CSV 文件至少需包含波长列和测试数据列。")
             
-        val_candidates = [c for c in other_cols if '%t' in c or '%r' in c or 'trans' in c or 'refl' in c or '%' in c or 't' in c or 'r' in c or 'val' in c]
-        val_col = val_candidates[0] if val_candidates else other_cols[0]
-        
-        df = df[[wl_col, val_col]].dropna()
-        df[wl_col] = pd.to_numeric(df[wl_col], errors='coerce')
-        df[val_col] = pd.to_numeric(df[val_col], errors='coerce')
-        df = df.dropna().sort_values(by=wl_col).set_index(wl_col)
-        
-        series = df[val_col]
+        val_candidates = [i for i in other_indices if '%t' in headers[i] or '%r' in headers[i] or 'trans' in headers[i] or 'refl' in headers[i] or '%' in headers[i] or headers[i] in ('t', 'r') or 'val' in headers[i]]
+        val_index = val_candidates[0] if val_candidates else other_indices[0]
+        series = []
+        for row in data_rows:
+            try:
+                series.append((float(row[wl_index]), float(row[val_index])))
+            except (TypeError, ValueError):
+                continue
+        if not series:
+            raise ValueError("CSV 文件中没有有效数值。")
+        series.sort()
+
         # 若为百分数(0-100)则转为 0-1 比例，若已为 0-1 比例则保持不变
-        if series.max() > 1.0:
-            series = series / 100.0
+        if max(value for _, value in series) > 1.0:
+            series = [(wavelength, value / 100.0) for wavelength, value in series]
         return series
     except Exception as e:
         raise ValueError(f"解析 CSV 失败，请检查文件格式。({e})")
@@ -42,8 +49,17 @@ def calculate_params(trans_csv_content, refl_csv_content, in_refl_csv_content=No
     
     def interpolate_val(wl, series):
         try:
-            # 使用 np.interp 确保无论如何均安全返回纯 Python float 标量
-            return float(np.interp(wl, series.index.values, series.values))
+            wavelengths = [item[0] for item in series]
+            values = [item[1] for item in series]
+            position = bisect_left(wavelengths, wl)
+            if position <= 0:
+                return values[0]
+            if position >= len(wavelengths):
+                return values[-1]
+            left_wavelength, right_wavelength = wavelengths[position - 1], wavelengths[position]
+            left_value, right_value = values[position - 1], values[position]
+            ratio = (wl - left_wavelength) / (right_wavelength - left_wavelength)
+            return float(left_value + ratio * (right_value - left_value))
         except Exception:
             return 0.0
 
@@ -96,25 +112,28 @@ def calculate_params(trans_csv_content, refl_csv_content, in_refl_csv_content=No
     spectra_data = None
     try:
         cie_path = "CIE241_H1_5nm.csv"
-        try:
-            cie_df = pd.read_csv(cie_path)
-        except Exception:
-            cie_df = pd.read_csv("./" + cie_path)
-            
-        cie_df.columns = ['wl', 'irr']
-        cie_df = cie_df[(cie_df['wl'] >= 300) & (cie_df['wl'] <= 2500)]
-        
-        wl_arr = cie_df['wl'].values.astype(float)
-        irr_arr = cie_df['irr'].values.astype(float)
-        
-        tau_arr = np.array([interpolate_val(w, tau_series) for w in wl_arr], dtype=float)
-        rho_arr = np.array([interpolate_val(w, rho_series) for w in wl_arr], dtype=float)
-        
-        direct_arr = irr_arr * tau_arr
-        
-        alpha_arr = 1.0 - tau_arr - rho_arr
-        qi_arr = alpha_arr * (QC_HI / (QC_HE + QC_HI))
-        total_arr = irr_arr * (tau_arr + qi_arr)
+        with open(cie_path, newline="", encoding="utf-8-sig") as cie_file:
+            cie_rows = csv.reader(cie_file)
+            next(cie_rows, None)
+            cie_data = []
+            for row in cie_rows:
+                try:
+                    wavelength, irradiance = float(row[0]), float(row[1])
+                    if 300 <= wavelength <= 2500:
+                        cie_data.append((wavelength, irradiance))
+                except (IndexError, TypeError, ValueError):
+                    continue
+
+        wl_arr = [wavelength for wavelength, _ in cie_data]
+        irr_arr = [irradiance for _, irradiance in cie_data]
+        tau_arr = [interpolate_val(w, tau_series) for w in wl_arr]
+        rho_arr = [interpolate_val(w, rho_series) for w in wl_arr]
+        direct_arr = [irr * tau for irr, tau in zip(irr_arr, tau_arr)]
+        total_arr = []
+        for irr, tau, rho in zip(irr_arr, tau_arr, rho_arr):
+            alpha = 1.0 - tau - rho
+            qi = alpha * (QC_HI / (QC_HE + QC_HI))
+            total_arr.append(irr * (tau + qi))
         
         spectra_data = {
             "wl": [float(x) for x in wl_arr],

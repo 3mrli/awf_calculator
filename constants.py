@@ -1,5 +1,3 @@
-import numpy as np
-
 # GB/T 2680-2021 加权系数占位符 
 # !! 请根据 `GB2680_database.xlsx` 文件中的真实值替换以下字典 !!
 
