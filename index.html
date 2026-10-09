@@ -34,6 +34,9 @@
         .container { width: 100%; margin: 0 auto; padding-left: 0.75rem; padding-right: 0.75rem; }
         .row { display: flex; flex-wrap: wrap; margin-left: -0.75rem; margin-right: -0.75rem; }
         .row > * { width: 100%; padding-left: 0.75rem; padding-right: 0.75rem; }
+        .calculator-layout { display: grid; grid-template-columns: minmax(250px, 5fr) minmax(300px, 7fr); gap: 1.5rem; align-items: start; margin-left: 0; margin-right: 0; }
+        .calculator-layout > .col-md-5,
+        .calculator-layout > .col-md-7 { width: auto; max-width: none; padding-left: 0; padding-right: 0; }
         .col-6 { flex: 0 0 50%; max-width: 50%; }
         .col-md-5, .col-md-7 { flex: 0 0 100%; max-width: 100%; }
         .d-flex { display: flex !important; }
@@ -112,6 +115,10 @@
 
         @media (max-width: 767.98px) {
             .container { max-width: 100%; }
+        }
+
+        @media (max-width: 559.98px) {
+            .calculator-layout { grid-template-columns: minmax(0, 1fr); }
         }
 
         .hero-value { font-size: 2.5rem; font-weight: bold; color: var(--ink); }
@@ -351,7 +358,7 @@
     </nav>
 
     <div class="container pb-5">
-        <div class="row">
+        <div class="row calculator-layout">
             <!-- Upload Section -->
             <div class="col-md-5 mb-4">
                 <div class="card shadow-sm border-0 mb-4">

@@ -182,6 +182,8 @@ def on_compare_selection_change(idx, checked):
     compare_selection.sort()
     window.localStorage.setItem(COMPARE_SELECTION_KEY, json.dumps(compare_selection))
     update_compare_controls()
+    if checked and 0 <= index < len(history_data):
+        update_right_panel(history_data[index])
 
 window.js_compare_selection_change = on_compare_selection_change
 
