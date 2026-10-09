@@ -689,6 +689,14 @@
     </script>
 
     <!-- PyScript Config & App Entry -->
-    <script type="py" config='{"interpreter":"../../vendor/pyodide/pyodide.mjs","fetch":[{"files":["./main.py","./calculator.py","./constants.py","./CIE241_H1_5nm.csv"]}]}' src="./main.py"></script>
+    <script id="py-app" type="py" src="./main.py"></script>
+    <script>
+        const projectBase = new URL(".", document.baseURI);
+        const localAsset = (name) => new URL(name, projectBase).href;
+        document.getElementById("py-app").setAttribute("config", JSON.stringify({
+            interpreter: localAsset("vendor/pyodide/pyodide.mjs"),
+            fetch: [{ files: ["main.py", "calculator.py", "constants.py", "CIE241_H1_5nm.csv"] }]
+        }));
+    </script>
 </body>
 </html>
