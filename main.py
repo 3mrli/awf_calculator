@@ -86,6 +86,10 @@ def update_right_panel(res):
     try:
         document.getElementById("results_wrapper").style.display = "block"
         document.getElementById("empty_state").style.display = "none"
+        selected_sample_label = document.getElementById("selected_sample_label")
+        if selected_sample_label:
+            selected_sample_label.innerText = f"当前样品：{res.get('name', '未命名样品')}"
+        document.getElementById("results_wrapper").scrollIntoView({"behavior": "smooth", "block": "start"})
         document.getElementById("hero_vlt").innerText = f"{res.get('VLT', 0):.1f}"
         document.getElementById("hero_uvb").innerText = f"{res.get('UVB', 0):.1f}"
         document.getElementById("hero_tser").innerText = f"{res.get('TSER', 0):.1f}"
